@@ -1,4 +1,4 @@
-package algo.neuralnetwork;
+package algo;
 
 public class Observation {
 	

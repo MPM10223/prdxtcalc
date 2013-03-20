@@ -1,11 +1,10 @@
-package algo.util.search;
+package algo.neuralnetwork;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import junit.framework.Assert;
 
-import algo.neuralnetwork.DiscretizedNeuralNetwork;
 
 import algo.util.search.GeneratorUtility;
 import algo.util.search.IOrganismGenerator;

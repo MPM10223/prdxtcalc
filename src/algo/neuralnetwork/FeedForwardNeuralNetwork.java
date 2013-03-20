@@ -2,7 +2,7 @@ package algo.neuralnetwork;
 
 import java.util.Arrays;
 
-public class FeedForwardNeuralNetwork extends NeuralNetwork implements IModel {
+public class FeedForwardNeuralNetwork extends NeuralNetwork {
 	
 	public FeedForwardNeuralNetwork(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses) {
 		

@@ -1,4 +1,4 @@
-package algo.util.search;
+package algo.neuralnetwork;
 
 import static org.junit.Assert.*;
 
@@ -7,7 +7,6 @@ import java.util.Random;
 
 import junit.framework.Assert;
 
-import algo.neuralnetwork.DiscretizedNeuralNetwork;
 
 import org.junit.Test;
 

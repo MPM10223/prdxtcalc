@@ -1,4 +1,4 @@
-package algo.neuralnetwork;
+package algo;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -9,9 +9,9 @@ import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import algo.util.search.IFitnessFunction;
 import sqlWrappers.SQLDatabase;
 
-public class SQLTrainingDataEvaluator<T extends IModel> implements IFitnessFunction<IModel> {
+public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitnessFunction<T> {
 	
-	protected TrainingDataEvaluator e;
+	protected TestDataEvaluator e;
 	
 	protected SQLDatabase db;
 	protected String tableName;
@@ -19,8 +19,12 @@ public class SQLTrainingDataEvaluator<T extends IModel> implements IFitnessFunct
 	protected String dvColumn;
 	protected String predicate;
 	protected String detailColumn;
+	
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, EvaluationType t) {
+		this(db, tableName, ivColumns, dvColumn, null, null, t);
+	}
 
-	public SQLTrainingDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, String detailColumn, boolean isBooleanPredictor) {
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
 		super();
 		this.db = db;
 		this.tableName = tableName;
@@ -29,7 +33,7 @@ public class SQLTrainingDataEvaluator<T extends IModel> implements IFitnessFunct
 		this.predicate = predicate;
 		this.detailColumn = detailColumn;
 		
-		String sql = this.getTrainingDataQuery();
+		String sql = this.getTestDataQuery();
 		Vector<Map<String,String>> results = db.getQueryRows(sql);
 		
 		Observation[] data = new Observation[results.size()];
@@ -56,26 +60,37 @@ public class SQLTrainingDataEvaluator<T extends IModel> implements IFitnessFunct
 			data[i] = new Observation(ivs, dv, detail);
 		}
 		
-		if(isBooleanPredictor) {
-			this.e = new BooleanPredictionTrainingDataEvaluator(data);
-		} else {
-			this.e = new TrainingDataEvaluator(data);
+		switch(t) {
+		case BOOLEAN:
+			this.e = new BooleanPredictionTestDataEvaluator(data);
+			break;
+		case DISCRETE:
+			this.e = new TestDataEvaluator(data);
+			break;
+		case CONTINUOUS_R2:
+			this.e = new R2TestDataEvaluator(data);
+			break;
+		case CONTINUOUS_RANGE:
+			this.e = new RangeTestDataEvaluator(data, 0.2); // TODO: expose % tolerance as an arg
+			break;
+		default:
+			throw new RuntimeException("Unsupported evaluation type");
 		}
 	}
 	
-	protected String getTrainingDataQuery() {
+	protected String getTestDataQuery() {
 		String ivSelectList = Arrays.toString(this.ivColumns);
 		ivSelectList = ivSelectList.substring(1, ivSelectList.length() - 1);
 		return String.format("SELECT %s, %s %s FROM %s WHERE 1=1 %s", ivSelectList, this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, (this.predicate == null ? "" : " AND " + this.predicate));
 	}
 
 	@Override
-	public double evaluate(IModel subject) {
+	public double evaluate(PredictiveModel subject) {
 		return e.evaluate(subject);
 	}
 
 	@Override
-	public Observation[] getPerformanceDetails(IModel subject) {
+	public Observation[] getPerformanceDetails(PredictiveModel subject) {
 		return e.getPerformanceDetails(subject);
 	}
 

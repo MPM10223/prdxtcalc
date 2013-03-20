@@ -6,7 +6,6 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
-import algo.util.search.DiscretizedNeuralNetworkGenerator;
 
 public class DiscretizedNeuralNetworkTest {
 

@@ -3,13 +3,15 @@ package algo.neuralnetwork;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
+import sqlWrappers.SQLDatabase;
+
 import junit.framework.Assert;
 
-import algo.util.search.DiscretizedNeuralNetworkGenerator;
+import algo.PredictiveModel;
 
 import algo.util.search.IGeneticOrganism;
 
-public class DiscretizedNeuralNetwork implements IGeneticOrganism, IModel {
+public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneticOrganism {
 	
 	protected FeedForwardNeuralNetwork nn;
 	protected double[][] threshholds;
@@ -130,5 +132,17 @@ public class DiscretizedNeuralNetwork implements IGeneticOrganism, IModel {
 		b.append(this.nn.toString());
 		
 		return b.toString();
+	}
+
+	@Override
+	public void toDB(SQLDatabase db) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void fromDB(SQLDatabase db, int modelID) {
+		// TODO Auto-generated method stub
+		
 	}
 }

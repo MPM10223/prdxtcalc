@@ -1,6 +1,6 @@
 package algo.util.search;
 
-import algo.neuralnetwork.Observation;
+import algo.Observation;
 
 public interface IFitnessFunction<T> {
 

@@ -31,6 +31,10 @@ public class SQLDatabase extends Database {
 		//return String.format("jdbc:sqlserver://%s;DatabaseName=%s;integratedSecurity=true;", server, database);
 	}
 	
+	public void executeQuery(String sql) {
+		this.getQueryRows(sql);
+	}
+	
 	public String getQueryResult(String sql) {
 		Map<String,String> row = getQueryRow(sql);
 		if(row.size() == 0) throw new RuntimeException("Specified query did not return any columns: " + sql);

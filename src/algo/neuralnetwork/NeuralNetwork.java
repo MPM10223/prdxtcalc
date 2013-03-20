@@ -1,8 +1,10 @@
 package algo.neuralnetwork;
 
+import sqlWrappers.SQLDatabase;
+import algo.PredictiveModel;
 import algo.util.graph.WeightedDirectedGraph;
 
-public class NeuralNetwork {
+public class NeuralNetwork extends PredictiveModel {
 
 	protected WeightedDirectedGraph<Neuron> graph;
 	
@@ -134,4 +136,20 @@ public class NeuralNetwork {
 		return (graph.hashCode() * this.numHiddenNeurons * this.numInputNeurons * this.numOutputNeurons) % Integer.MAX_VALUE;
 	}
 
+	@Override
+	public void toDB(SQLDatabase db) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public double predict(double[] ivs) {
+		return this.processSignal(ivs)[0];
+	}
+
+	@Override
+	public void fromDB(SQLDatabase sqlDatabase, int modelID) {
+		// TODO Auto-generated method stub
+		
+	}
 }

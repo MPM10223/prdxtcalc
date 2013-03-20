@@ -1,10 +1,10 @@
-package algo.neuralnetwork;
+package algo;
 
 import junit.framework.Assert;
 
-public class BooleanPredictionTrainingDataEvaluator extends TrainingDataEvaluator {
+public class BooleanPredictionTestDataEvaluator extends TestDataEvaluator {
 
-	public BooleanPredictionTrainingDataEvaluator(Observation[] trainingData) {
+	public BooleanPredictionTestDataEvaluator(Observation[] trainingData) {
 		super(trainingData);
 	}
 
