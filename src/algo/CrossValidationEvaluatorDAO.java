@@ -6,8 +6,8 @@ public class CrossValidationEvaluatorDAO extends ModelTrainingDataDAO {
 	protected int algorithmID;
 	protected int modelID;
 
-	public CrossValidationEvaluatorDAO(String dataTable, String dvColumn, int problemID, int algorithmID, int modelID) {
-		super(dataTable, dvColumn, null); // predicates not supported for now
+	public CrossValidationEvaluatorDAO(String dataTable, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
+		super(dataTable, dvColumn, idColumn, null); // predicates not supported for now
 		this.problemID = problemID;
 		this.algorithmID = algorithmID;
 		this.modelID = modelID;
@@ -15,7 +15,7 @@ public class CrossValidationEvaluatorDAO extends ModelTrainingDataDAO {
 	
 	public void assignFolds(int numFolds) {
 		//TODO: make this actually adhere to numFolds strictly
-		String sql = String.format("SELECT *, cast(cast(newID() as varbinary) as int) % %d as foldID INTO [%s] FROM [%s]", numFolds, this.getFoldTable(), this.dataTable);
+		String sql = String.format("SELECT *, (Row_Number() OVER (ORDER BY newID()) - 1) % %d as foldID INTO [%s] FROM [%s]", numFolds, this.getFoldTable(), this.dataTable);
 		this.db.executeQuery(sql);
 	}
 

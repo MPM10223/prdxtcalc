@@ -8,4 +8,15 @@ public enum JobType {
 	private JobType(int value) {
 		this.value = value;
 	}
+	
+	public static JobType fromInt(int value) {
+		switch(value) {
+		case 1:
+			return BUILD_MODEL;
+		case 2:
+			return EVALUATE_MODEL;
+		default:
+			throw new RuntimeException();
+		}
+	}
 }

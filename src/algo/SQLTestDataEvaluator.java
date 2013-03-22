@@ -46,11 +46,21 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 			for(int j = 0; j < ivColumns.length; j++) {
 				String ivColumn = ivColumns[j].replace("[", "").replace("]", "");
 				String ivValueString = row.get(ivColumn);
-				double ivValue = Double.parseDouble(ivValueString);
-				ivs[j] = ivValue;
+				if(ivValueString != null) {
+					double ivValue = Double.parseDouble(ivValueString);
+					ivs[j] = ivValue;
+				} else {
+					//TODO: deal with missing IV data
+				}
 			}
 			
-			double dv = Double.parseDouble(row.get(this.dvColumn));
+			double dv;
+			if(row.get(this.dvColumn) == null) {
+				//TODO: deal with missing DV data
+				throw new RuntimeException();
+			} else {
+				dv = Double.parseDouble(row.get(this.dvColumn));
+			}
 			
 			String detail = null;
 			if(this.detailColumn != null) {
@@ -81,7 +91,8 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 	protected String getTestDataQuery() {
 		String ivSelectList = Arrays.toString(this.ivColumns);
 		ivSelectList = ivSelectList.substring(1, ivSelectList.length() - 1);
-		return String.format("SELECT %s, %s %s FROM %s WHERE 1=1 %s", ivSelectList, this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, (this.predicate == null ? "" : " AND " + this.predicate));
+		//TODO: support missing DV data in query
+		return String.format("SELECT %s, %s %s FROM %s WHERE 1=1 AND [%s] IS NOT NULL %s", ivSelectList, this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, this.dvColumn, (this.predicate == null ? "" : " AND " + this.predicate));
 	}
 
 	@Override

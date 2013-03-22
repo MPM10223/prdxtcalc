@@ -62,7 +62,7 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 		int trial = 0;
 		while(trial < this.maxTrials) {
 			
-			//if(trial % 100 == 0) System.out.println("Trial " + trial);
+			if(trial % 1 == 0) System.out.println("Trial " + trial);
 			
 			// Fitness
 			HashMap<TOrganism, Double> fitness = new HashMap<TOrganism, Double>(this.numOrganisms);
@@ -75,7 +75,7 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 				selectionLikelihood.put(o, Math.pow(f, 2));
 				
 				if(f > best) {
-					//System.out.println(String.format("Trial %d - New Champion @ Fitness: %f", trial+1, f));
+					System.out.println(String.format("Trial %d - New Champion @ Fitness: %f", trial+1, f));
 					winner = o;
 					best = f;
 				}

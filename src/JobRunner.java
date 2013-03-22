@@ -1,5 +1,3 @@
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.Map;
 
 import algo.Algorithm;
@@ -8,8 +6,6 @@ import algo.CrossValidationEvaluator;
 import algo.PredictiveModel;
 
 import dao.JobRunnerDAO;
-
-import sqlWrappers.SQLDatabase;
 
 
 public abstract class JobRunner {
@@ -41,7 +37,7 @@ public abstract class JobRunner {
 		
 		if(pop.size() > 0) {
 			String jobTypeID = pop.get("jobTypeID");
-			JobType jobType = JobType.valueOf(jobTypeID);
+			JobType jobType = JobType.fromInt(Integer.parseInt(jobTypeID)); //JobType.valueOf(jobTypeID);
 			
 			String[] jobArgs = pop.get("args").split(" ");
 			
@@ -77,7 +73,7 @@ public abstract class JobRunner {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		Map<String,String> problemData = dao.getProblemDataSource(problemID);
-		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.get("table"), problemData.get("column"), null));
+		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.get("table"), problemData.get("dvColumn"), problemData.get("idColumn"), null));
 		m.toDB(dao.getDB());
 	}
 	
@@ -85,7 +81,7 @@ public abstract class JobRunner {
 		
 		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);	
 		Map<String,String> problemData = dao.getProblemDataSource(problemID);
-		CrossValidationEvaluator e = new CrossValidationEvaluator(problemData.get("table"), problemData.get("column"), 5, problemID, algorithmID, modelID);
+		CrossValidationEvaluator e = new CrossValidationEvaluator(problemData.get("table"), problemData.get("dvColumn"), problemData.get("idColumn"), 5, problemID, algorithmID, modelID);
 		double cvr2 = e.evaluate(a);
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);
@@ -99,7 +95,7 @@ public abstract class JobRunner {
 		
 		try {
 			
-			Class<? extends Algorithm> c = (Class<? extends Algorithm>) Class.forName(algoClass);
+			Class<? extends Algorithm> c = (Class<? extends Algorithm>) Class.forName("algo." + algoClass);
 			a = c.newInstance();
 			
 		} catch (ClassNotFoundException e) {

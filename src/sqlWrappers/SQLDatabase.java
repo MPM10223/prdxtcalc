@@ -50,6 +50,8 @@ public class SQLDatabase extends Database {
 	}
 	
 	public Vector<Map<String,String>> getQueryRows(String sql) {
+		System.out.println(sql);
+		
 		Vector<Map<String,String>> results = null;
 		
 		try {
