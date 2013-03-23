@@ -111,8 +111,11 @@ public class JobRunnerDAO {
 		int modelStatID = 1; //TODO: make this cleaner with an enum
 		String detailString = String.format(""); //TODO: provide more detail
 		
-		//TODO: handle existing entry
-		String sql = String.format("INSERT INTO modelAccuracy (modelID, modelStatID, value, detailString) SELECT %d, %d, %f, '%s'", modelID, modelStatID, cvr2, detailString);
+		// delete any existing entries
+		String sql = String.format("DELETE modelAccuracy WHERE modelID = %d AND modelStatID = %d", modelID, modelStatID);
+		db.executeQuery(sql);
+		
+		sql = String.format("INSERT INTO modelAccuracy (modelID, modelStatID, value, detailString) SELECT %d, %d, %f, '%s'", modelID, modelStatID, cvr2, detailString);
 		db.executeQuery(sql);
 	}
 
