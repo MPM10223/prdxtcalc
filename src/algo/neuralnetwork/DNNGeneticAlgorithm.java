@@ -20,7 +20,7 @@ public class DNNGeneticAlgorithm extends Algorithm<DiscretizedNeuralNetwork> {
 
 	public DNNGeneticAlgorithm() {
 		//TODO: verify that these are good defaults
-		this(100, 1000, 0.1, 0.4, 0.2, 0.6, DiscretizedNeuralNetwork.class);
+		this(100, 10, 0.1, 0.4, 0.2, 0.6, DiscretizedNeuralNetwork.class);
 	}
 	
 	public DNNGeneticAlgorithm(

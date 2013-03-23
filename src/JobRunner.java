@@ -50,6 +50,8 @@ public abstract class JobRunner {
 				int algorithmID = Integer.parseInt(jobArgs[1]);
 				
 				buildModel(problemID, algorithmID);
+				
+				break;
 								
 			case EVALUATE_MODEL:
 				
@@ -60,6 +62,8 @@ public abstract class JobRunner {
 				int modelID = Integer.parseInt(jobArgs[2]);
 				
 				evaluateAlgorithm(problemID, algorithmID, modelID);
+				
+				break;
 				
 			default:
 				throw new RuntimeException(String.format("Unsupported jobTypeID: {0}", jobTypeID));
@@ -74,7 +78,7 @@ public abstract class JobRunner {
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		Map<String,String> problemData = dao.getProblemDataSource(problemID);
 		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.get("table"), problemData.get("dvColumn"), problemData.get("idColumn"), null));
-		m.toDB(dao.getDB());
+		m.toDB(dao.getDB(), problemID, algorithmID);
 	}
 	
 	protected static void evaluateAlgorithm(int problemID, int algorithmID, int modelID) {

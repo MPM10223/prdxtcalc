@@ -137,9 +137,9 @@ public class NeuralNetwork extends PredictiveModel {
 	}
 
 	@Override
-	public void toDB(SQLDatabase db) {
+	public int toDB(SQLDatabase db, int problemID, int algoID) {
 		// TODO Auto-generated method stub
-		
+		return 0;
 	}
 
 	@Override
@@ -151,5 +151,11 @@ public class NeuralNetwork extends PredictiveModel {
 	public void fromDB(SQLDatabase sqlDatabase, int modelID) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public int getModelTypeID() {
+		// TODO assign modelTypeID
+		return -1;
 	}
 }

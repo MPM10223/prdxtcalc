@@ -9,6 +9,7 @@ import junit.framework.Assert;
 
 import algo.PredictiveModel;
 
+import algo.util.dao.SQLInsertBuffer;
 import algo.util.search.IGeneticOrganism;
 
 public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneticOrganism {
@@ -135,14 +136,55 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	}
 
 	@Override
-	public void toDB(SQLDatabase db) {
-		// TODO Auto-generated method stub
+	public int toDB(SQLDatabase db, int problemID, int algoID) {
+		int modelID = super.toDB(db, problemID, algoID);
 		
+		int n = nn.getLayerSize();
+		
+		// 1) N x N : input > hidden weights
+		SQLInsertBuffer b = new SQLInsertBuffer(db, "dnn_inputToHiddenSynapses", new String[] {"[modelID]","[inputSynapseIndex]","[hiddenSynapseIndex]","[weight]"}); 
+		b.startBufferedInsert((int)Math.pow(n, 2));
+		
+		for(int i = 0; i < n; i++) {
+			for(int j = 0; j < n; j++) {
+				b.insertRow(new String[] {String.valueOf(modelID), String.valueOf(i), String.valueOf(j), String.valueOf(nn.getInputToHiddenSynapseWeight(i, j))});
+			}
+		}
+		b.finishBufferedInsert();
+		
+		// 2) N		: hidden > output weights
+		b = new SQLInsertBuffer(db, "dnn_hiddenToOutputSynapses", new String[] {"[modelID]","[synapseIndex]","[weight]"}); 
+		b.startBufferedInsert(n);
+		
+		for(int i = 0; i < n; i++) {
+			b.insertRow(new String[] {String.valueOf(modelID), String.valueOf(i), String.valueOf(nn.getHiddenToOutputSynapseWeight(i, 0))});
+		}
+		b.finishBufferedInsert();
+		
+		// 3) t x N	: discretization threshholds
+		b = new SQLInsertBuffer(db, "dnn_discretizationThreshholds", new String[] {"[modelID]","[inputIndex]","[threshholdIndex]","[boundary]"}); 
+		b.startBufferedInsert(nn.getLayerSize() * DiscretizedNeuralNetworkGenerator.MAX_DISCRETIZATION_THRESHHOLDS);
+		
+		for(int i = 0; i < n; i++) {
+			for(int j = 0; j < DiscretizedNeuralNetworkGenerator.MAX_DISCRETIZATION_THRESHHOLDS; j++) {
+				double t = threshholds[i][j];
+				b.insertRow(new String[] {String.valueOf(modelID), String.valueOf(i), String.valueOf(j), String.valueOf(t)});
+			}
+		}
+		
+		b.finishBufferedInsert();
+		
+		return modelID;
 	}
 
 	@Override
 	public void fromDB(SQLDatabase db, int modelID) {
 		// TODO Auto-generated method stub
 		
+	}
+
+	@Override
+	public int getModelTypeID() {
+		return 1; //TODO: make this cleaner, e.g. use an enum
 	}
 }

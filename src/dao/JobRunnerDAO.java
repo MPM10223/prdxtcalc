@@ -11,7 +11,7 @@ public class JobRunnerDAO {
 	protected String jobQtable;
 	
 	public JobRunnerDAO() {
-		this("hwvhpv4cb1.database.windows.net:1433", "prdxt", "user@hwvhpv4cb1", "pwd");
+		this("hwvhpv4cb1.database.windows.net:1433", "prdxt", "username@hwvhpv4cb1", "pwd");
 		this.jobQtable = "jobQueue";
 	}
 	

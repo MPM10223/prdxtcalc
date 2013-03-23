@@ -11,7 +11,7 @@ public class ModelTrainingDataDAO {
 	
 	private static String server = "hwvhpv4cb1.database.windows.net:1433";
 	private static String database = "prdxt";
-	private static String userName = "user@hwvhpv4cb1";
+	private static String userName = "username@hwvhpv4cb1";
 	private static String password = "pwd";
 	
 	protected String dataTable;
