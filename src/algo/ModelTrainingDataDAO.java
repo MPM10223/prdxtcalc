@@ -9,19 +9,18 @@ public class ModelTrainingDataDAO {
 
 	protected SQLDatabase db;
 	
-	private static String server = "hwvhpv4cb1.database.windows.net:1433";
-	private static String database = "prdxt";
-	private static String userName = "username@hwvhpv4cb1";
-	private static String password = "pwd";
-	
 	protected String dataTable;
 	protected String[] ivColumns;
 	protected String dvColumn;
 	protected String idColumn;
 	protected String predicate;
 
-	public ModelTrainingDataDAO(String dataTable, String[] ivColumns, String dvColumn, String idColumn, String predicate) {
-		this.db = new SQLDatabase(server, database, userName, password);
+	public ModelTrainingDataDAO(String server, String database, String userName, String password, String dataTable, String[] ivColumns, String dvColumn, String idColumn, String predicate) {
+		this(new SQLDatabase(server, database, userName, password), dataTable, ivColumns, dvColumn, idColumn, predicate);
+	}
+	
+	public ModelTrainingDataDAO(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, String predicate) {
+		this.db = db;
 		this.dataTable = dataTable;
 		this.ivColumns = ivColumns;
 		this.dvColumn = dvColumn;
@@ -71,22 +70,6 @@ public class ModelTrainingDataDAO {
 	}
 	
 	public String[] getIvColumns() {
-		
-		/*
-		String sql = String.format("SELECT TOP 1 * FROM [%s] WHERE %s", dataTable, this.getSQLPredicate());
-		Map<String,String> row = this.db.getQueryRow(sql);
-		if(row.size() < 2) throw new RuntimeException("Data source table must have at least 2 columns");
-		
-		String[] ivColumns = new String[row.size() - 2];
-		int i = 0;
-		for(String c : row.keySet()) {
-			if(!c.equalsIgnoreCase(this.dvColumn) && !c.equalsIgnoreCase(this.idColumn) && !c.equalsIgnoreCase("foldID")) {
-				ivColumns[i] = "[" + c + "]";
-				i++;
-			}
-		}
-		*/
-		
 		return ivColumns;
 	}
 	

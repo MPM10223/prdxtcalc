@@ -1,6 +1,7 @@
 package dao;
 
-import java.util.HashMap;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Vector;
 
@@ -10,23 +11,59 @@ public class JobRunnerDAO {
 	
 	protected SQLDatabase db;
 	protected String jobQtable;
+	protected Integer calcServerID;
 	
-	public JobRunnerDAO() {
-		this("hwvhpv4cb1.database.windows.net:1433", "prdxt", "username@hwvhpv4cb1", "pwd");
-		this.jobQtable = "jobQueue";
+	public JobRunnerDAO(String server, String database, String jobQTable, String username, String password) {
+		this.db = new SQLDatabase(server, database, username, password);
+		this.jobQtable = jobQTable;
+		this.calcServerID = null;
 	}
 	
-	public JobRunnerDAO(String server, String database, String username, String password) {
-		this.db = new SQLDatabase(server, database, username, password);
+	protected int getCalcServerID() {
+		if(calcServerID == null) {
+			String serverName;
+			try {
+				serverName = InetAddress.getLocalHost().getHostName();
+			} catch (UnknownHostException e) {
+				throw new RuntimeException(e);
+			}
+			String sql = String.format("SELECT calcServerID FROM calcServers WHERE calcServerName = '%s'", serverName);
+			this.calcServerID = Integer.parseInt(db.getQueryResult(sql));
+		}
+		return this.calcServerID;
 	}
 	
 	public Map<String,String> popJobQueue() {
-		//TODO: pop
-		return peekJobQueue();
+		
+		// see if we own any orphaned jobs
+		String sql = String.format("SELECT jobID, jobTypeID, args FROM [%s] WHERE jobStatus = 0 AND calcServerId = %d", this.jobQtable, this.getCalcServerID());
+		Vector<Map<String,String>> result = db.getQueryRows(sql);
+		
+		Map<String,String> job = null;
+		if(result.size() == 0) {
+			// try to claim a new job
+			String jobIDQuery = String.format("SELECT TOP 1 jobID FROM [%s] WHERE jobStatus = 0 AND calcServerID IS NULL ORDER BY requestTime ASC", this.jobQtable);
+			String claimQuery = String.format("UPDATE [%s] SET calcServerID = %d WHERE jobID IN (%s)", this.jobQtable, calcServerID, jobIDQuery);
+			db.executeQuery(claimQuery);
+			
+			Vector<Map<String,String>> results = db.getQueryRows(sql);
+			if(results.size() == 1) {
+				job = results.firstElement();
+			} else if(results.size() > 1) {
+				throw new RuntimeException("Claim query claimed multiple jobs - this should never happen");
+			}
+		} else if(result.size() > 1) {
+			throw new RuntimeException("This server has claimed multiple jobs already");
+		} else {
+			// adopt this orphaned job
+			job = result.firstElement();
+		}
+		
+		return job;
 	}
 	
 	public Map<String,String> peekJobQueue() {
-		String sql = String.format("SELECT TOP 1 jobTypeID, args FROM [%s] WHERE jobStatus = 0 ORDER BY requestTime ASC", this.jobQtable);
+		String sql = String.format("SELECT TOP 1 jobID, jobTypeID, args FROM [%s] WHERE jobStatus = 0 AND calcServerID IS NULL ORDER BY requestTime ASC", this.jobQtable);
 		Map<String,String> pop = db.getQueryRow(sql);
 		return pop;
 	}
@@ -74,7 +111,30 @@ public class JobRunnerDAO {
 		int modelStatID = 1; //TODO: make this cleaner with an enum
 		String detailString = String.format(""); //TODO: provide more detail
 		
+		//TODO: handle existing entry
 		String sql = String.format("INSERT INTO modelAccuracy (modelID, modelStatID, value, detailString) SELECT %d, %d, %f, '%s'", modelID, modelStatID, cvr2, detailString);
+		db.executeQuery(sql);
+	}
+
+	public void logJobStarted(int jobID) {
+		logJobStatusChange(jobID, 0, 1);
+	}
+
+	public void logJobCompleted(int jobID) {
+		logJobStatusChange(jobID, 1, 2);
+	}
+	
+	public void logJobFailed(int jobID) {
+		logJobStatusChange(jobID, 1, 3);
+	}
+	
+	protected void logJobStatusChange(int jobID, int oldStatus, int newStatus) {
+		String sql = String.format("SELECT jobID FROM [%s] WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, jobID, this.getCalcServerID(), oldStatus);
+		Vector<Map<String,String>> results = db.getQueryRows(sql);
+		
+		if(results.size() == 0) throw new RuntimeException("Invalid jobID / status combination - no matching job/state found");
+		
+		sql = String.format("UPDATE [%s] SET jobStatus = %d WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, newStatus, jobID, this.getCalcServerID(), oldStatus);
 		db.executeQuery(sql);
 	}
 }

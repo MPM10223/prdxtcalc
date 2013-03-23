@@ -62,7 +62,7 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 		int trial = 0;
 		while(trial < this.maxTrials) {
 			
-			if(trial % 1 == 0) System.out.println("Trial " + trial);
+			//if(trial % 1 == 0) System.out.println("Trial " + trial);
 			
 			// Fitness
 			HashMap<TOrganism, Double> fitness = new HashMap<TOrganism, Double>(this.numOrganisms);

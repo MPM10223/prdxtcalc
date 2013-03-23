@@ -1,5 +1,6 @@
 package algo;
 
+import sqlWrappers.SQLDatabase;
 import algo.util.search.IFitnessFunction;
 
 public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<PredictiveModel>> {
@@ -10,12 +11,12 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 	protected int algorithmID;
 	protected int modelID;
 
-	public CrossValidationEvaluator(String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
-		this(dataTable, ivColumns, dvColumn, idColumn, 5, problemID, algorithmID, modelID);
+	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
+		this(db, dataTable, ivColumns, dvColumn, idColumn, 5, problemID, algorithmID, modelID);
 	}
 	
-	public CrossValidationEvaluator(String dataTable, String[] ivColumns, String dvColumn, String idColumn, int numFolds, int problemID, int algorithmID, int modelID) {
-		this(new CrossValidationEvaluatorDAO(dataTable, ivColumns, dvColumn, idColumn, problemID, algorithmID, modelID), numFolds);
+	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int numFolds, int problemID, int algorithmID, int modelID) {
+		this(new CrossValidationEvaluatorDAO(db, dataTable, ivColumns, dvColumn, idColumn, problemID, algorithmID, modelID), numFolds);
 	}
 	
 	public CrossValidationEvaluator(CrossValidationEvaluatorDAO dao, int numFolds) {
@@ -36,8 +37,12 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 		// 2. for each fold
 		for(int i = 0; i < this.numFolds; i++) {
 		
+			System.out.println(String.format("Building model on all but fold %d...", i));
+			
 			// run the algorithm on all data but this fold
-			PredictiveModel m = subject.buildModel(new AlgorithmDAO(dao.getFoldTable(), dao.getIvColumns(), dao.getDvColumn(), dao.getIdColumn(), String.format("foldID <> %d", i)));
+			PredictiveModel m = subject.buildModel(new AlgorithmDAO(dao.getDb(), dao.getFoldTable(), dao.getIvColumns(), dao.getDvColumn(), dao.getIdColumn(), String.format("foldID <> %d", i)));
+			
+			System.out.println(String.format("Evaluating on fold %d...", i));
 			
 			// evaluate the algorithm on this fold
 			SQLTestDataEvaluator<PredictiveModel> e = new SQLTestDataEvaluator<PredictiveModel>(
@@ -49,6 +54,8 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 					, (dao.getDVIsBinary() ? EvaluationType.BOOLEAN : EvaluationType.CONTINUOUS_R2)); //TODO: discrete non-binary
 			double accuracy = e.evaluate(m);
 			int n = dao.getFoldSize(i);
+			
+			System.out.println(String.format("Fold %d (%d): accuracy %f", i, n, accuracy));
 			
 			aggAccuracy += (accuracy * n);
 			numObservations += n;

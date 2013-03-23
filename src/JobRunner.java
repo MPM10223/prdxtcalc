@@ -22,52 +22,63 @@ public abstract class JobRunner {
 	
 	public static void main(String[] args) {
 		
-		/*
 		if(args.length != 5)
 			throw new RuntimeException();
 		
 		String server = args[0];
 		String database = args[1];
-		String jobqtable = args[2];
+		String jobQtable = args[2];
 		String username = args[3];
 		String password = args[4];
-		*/
-		if(JobRunner.dao == null) JobRunner.dao = new JobRunnerDAO();
+		
+		if(JobRunner.dao == null) JobRunner.dao = new JobRunnerDAO(server, database, jobQtable, username, password);
 		
 		Map<String,String> pop = dao.popJobQueue();
 		
-		if(pop.size() > 0) {
-			String jobTypeID = pop.get("jobTypeID");
-			JobType jobType = JobType.fromInt(Integer.parseInt(jobTypeID)); //JobType.valueOf(jobTypeID);
+		if(pop != null) {
+			int jobID = Integer.parseInt(pop.get("jobID"));
 			
-			String[] jobArgs = pop.get("args").split(" ");
-			
-			switch(jobType) {
-			case BUILD_MODEL:
+			try {
 				
-				// args usage: problemID algorithmID 
-				if(jobArgs.length != 2) throw new RuntimeException();
-				int problemID = Integer.parseInt(jobArgs[0]);
-				int algorithmID = Integer.parseInt(jobArgs[1]);
+				String jobTypeID = pop.get("jobTypeID");
+				JobType jobType = JobType.fromInt(Integer.parseInt(jobTypeID)); //JobType.valueOf(jobTypeID);
 				
-				buildModel(problemID, algorithmID);
+				String[] jobArgs = pop.get("args").split(" ");
 				
-				break;
-								
-			case EVALUATE_MODEL:
+				dao.logJobStarted(jobID);
 				
-				// args usage: problemID algorithmID modelID
-				if(jobArgs.length != 3) throw new RuntimeException();
-				problemID = Integer.parseInt(jobArgs[0]);
-				algorithmID = Integer.parseInt(jobArgs[1]);
-				int modelID = Integer.parseInt(jobArgs[2]);
+				switch(jobType) {
+				case BUILD_MODEL:
+					
+					// args usage: problemID algorithmID 
+					if(jobArgs.length != 2) throw new RuntimeException();
+					int problemID = Integer.parseInt(jobArgs[0]);
+					int algorithmID = Integer.parseInt(jobArgs[1]);
+					
+					buildModel(problemID, algorithmID);
+					
+					break;
+									
+				case EVALUATE_MODEL:
+					
+					// args usage: problemID algorithmID modelID
+					if(jobArgs.length != 3) throw new RuntimeException();
+					problemID = Integer.parseInt(jobArgs[0]);
+					algorithmID = Integer.parseInt(jobArgs[1]);
+					int modelID = Integer.parseInt(jobArgs[2]);
+					
+					evaluateAlgorithm(problemID, algorithmID, modelID);
+					
+					break;
+					
+				default:
+					throw new RuntimeException(String.format("Unsupported jobTypeID: %d", jobTypeID));
+				}
 				
-				evaluateAlgorithm(problemID, algorithmID, modelID);
-				
-				break;
-				
-			default:
-				throw new RuntimeException(String.format("Unsupported jobTypeID: {0}", jobTypeID));
+				dao.logJobCompleted(jobID);
+		
+			} catch(Exception e) {
+				dao.logJobFailed(jobID);
 			}
 		}
 		
@@ -78,7 +89,7 @@ public abstract class JobRunner {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
-		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), null));
+		PredictiveModel m = a.buildModel(new AlgorithmDAO(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), null));
 		m.toDB(dao.getDB(), problemID, algorithmID);
 	}
 	
@@ -86,7 +97,7 @@ public abstract class JobRunner {
 		
 		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);	
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
-		CrossValidationEvaluator e = new CrossValidationEvaluator(problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
+		CrossValidationEvaluator e = new CrossValidationEvaluator(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
 		double cvr2 = e.evaluate(a);
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);

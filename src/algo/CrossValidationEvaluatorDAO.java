@@ -3,14 +3,16 @@ package algo;
 import java.util.Map;
 import java.util.Vector;
 
+import sqlWrappers.SQLDatabase;
+
 public class CrossValidationEvaluatorDAO extends ModelTrainingDataDAO {
 	
 	protected int problemID;
 	protected int algorithmID;
 	protected int modelID;
 
-	public CrossValidationEvaluatorDAO(String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
-		super(dataTable, ivColumns, dvColumn, idColumn, null); // predicates not supported for now
+	public CrossValidationEvaluatorDAO(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
+		super(db, dataTable, ivColumns, dvColumn, idColumn, null); // predicates not supported for now
 		this.problemID = problemID;
 		this.algorithmID = algorithmID;
 		this.modelID = modelID;
