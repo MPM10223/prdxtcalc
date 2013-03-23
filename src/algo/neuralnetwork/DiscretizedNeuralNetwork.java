@@ -2,6 +2,8 @@ package algo.neuralnetwork;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Vector;
 
 import sqlWrappers.SQLDatabase;
 
@@ -18,6 +20,10 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	protected double[][] threshholds;
 	
 	public DiscretizedNeuralNetwork(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
+		this.initialize(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses, threshholds);
+	}
+	
+	private void initialize(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
 		this.nn = new FeedForwardNeuralNetwork(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses);
 		this.threshholds = threshholds;
 	}
@@ -179,8 +185,51 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 
 	@Override
 	public void fromDB(SQLDatabase db, int modelID) {
-		// TODO Auto-generated method stub
+		super.fromDB(db, modelID);
+	
+		int layerSize;
+		double[][] inputToHiddenSynapses;
+		double[] hiddenToOutputSynapses;
+		double[][] threshholds;
 		
+		// 1) N x N : input > hidden weights (dnn_inputToHiddenSynapses)
+		String sql = String.format("SELECT inputSynapseIndex, hiddenSynapseIndex, weight FROM dnn_inputToHiddenSynapses WHERE modelID = %d", modelID);
+		Vector<Map<String,String>> results = db.getQueryRows(sql);
+		
+		layerSize = results.size();
+		
+		inputToHiddenSynapses = new double[layerSize][layerSize];
+		for(Map<String,String> row : results) {
+			int inputSynapseIndex = Integer.parseInt(row.get("inputSynapseIndex"));
+			int hiddenSynapseIndex = Integer.parseInt(row.get("hiddenSynapseIndex"));
+			double weight = Double.parseDouble(row.get("weight"));
+			inputToHiddenSynapses[inputSynapseIndex][hiddenSynapseIndex] = weight; 
+		}
+		
+		// 2) N		: hidden > output weights (dnn_hiddenToOutputSynapses)
+		sql = String.format("SELECT synapseIndex, weight FROM dnn_hiddenToOutputSynapses WHERE modelID = %d", modelID);
+		results = db.getQueryRows(sql);
+		
+		hiddenToOutputSynapses = new double[layerSize];
+		for(Map<String,String> row : results) {
+			int synapseIndex = Integer.parseInt(row.get("synapseIndex"));
+			double weight = Double.parseDouble(row.get("weight"));
+			hiddenToOutputSynapses[synapseIndex] = weight; 
+		}
+		
+		// 3) t x N	: discretization threshholds (dnn_discretizationThreshholds)
+		sql = String.format("SELECT inputIndex, threshholdIndex, boundary FROM dnn_discretizationThreshholds WHERE modelID = %d", modelID);
+		results = db.getQueryRows(sql);
+		
+		threshholds = new double[layerSize][DiscretizedNeuralNetworkGenerator.MAX_DISCRETIZATION_THRESHHOLDS];
+		for(Map<String,String> row : results) {
+			int inputIndex = Integer.parseInt(row.get("inputIndex"));
+			int threshholdIndex = Integer.parseInt(row.get("threshholdIndex"));
+			double boundary = Double.parseDouble(row.get("boundary"));
+			threshholds[inputIndex][threshholdIndex] = boundary; 
+		}
+		
+		this.initialize(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses, threshholds);
 	}
 
 	@Override

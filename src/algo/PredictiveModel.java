@@ -19,6 +19,10 @@ public abstract class PredictiveModel {
 		return Integer.parseInt(modelID);
 	}
 	
-	public abstract void fromDB(SQLDatabase sqlDatabase, int modelID);
+	public void fromDB(SQLDatabase db, int modelID) {
+		String sql = String.format("SELECT modelTypeID FROM models WHERE modelID = %d", modelID);
+		int modelTypeID = Integer.parseInt(db.getQueryResult(sql));
+		if(this.getModelTypeID() != modelTypeID) throw new RuntimeException("This modelID is invalid for this model type");
+	}
 
 }

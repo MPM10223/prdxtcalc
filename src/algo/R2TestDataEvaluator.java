@@ -12,12 +12,12 @@ public class R2TestDataEvaluator extends TestDataEvaluator {
 		double naiveVariance = 0.0;
 		double modelVariance = 0.0;
 		
+		double naivePrediction = this.getDVMean(); // TODO: make this configurable
+		
 		for(int i = 0; i < testData.length; i++) {
 			Observation o = testData[i];
 			double prediction = subject.predict(o.getIndependentVariables());
 			o.setPrediction(prediction);
-			
-			double naivePrediction = this.getDVMean(); // TODO: make this configurable
 			
 			modelVariance += Math.pow(o.getDependentVariable() - prediction, 2);
 			naiveVariance += Math.pow(o.getDependentVariable() - naivePrediction, 2);

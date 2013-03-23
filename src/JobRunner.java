@@ -6,6 +6,7 @@ import algo.CrossValidationEvaluator;
 import algo.PredictiveModel;
 
 import dao.JobRunnerDAO;
+import dao.ProblemDefinition;
 
 
 public abstract class JobRunner {
@@ -76,16 +77,16 @@ public abstract class JobRunner {
 	protected static void buildModel(int problemID, int algorithmID) {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
-		Map<String,String> problemData = dao.getProblemDataSource(problemID);
-		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.get("table"), problemData.get("dvColumn"), problemData.get("idColumn"), null));
+		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
+		PredictiveModel m = a.buildModel(new AlgorithmDAO(problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), null));
 		m.toDB(dao.getDB(), problemID, algorithmID);
 	}
 	
 	protected static void evaluateAlgorithm(int problemID, int algorithmID, int modelID) {
 		
 		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);	
-		Map<String,String> problemData = dao.getProblemDataSource(problemID);
-		CrossValidationEvaluator e = new CrossValidationEvaluator(problemData.get("table"), problemData.get("dvColumn"), problemData.get("idColumn"), 5, problemID, algorithmID, modelID);
+		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
+		CrossValidationEvaluator e = new CrossValidationEvaluator(problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
 		double cvr2 = e.evaluate(a);
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);

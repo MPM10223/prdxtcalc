@@ -15,13 +15,15 @@ public class ModelTrainingDataDAO {
 	private static String password = "pwd";
 	
 	protected String dataTable;
+	protected String[] ivColumns;
 	protected String dvColumn;
 	protected String idColumn;
 	protected String predicate;
-	
-	public ModelTrainingDataDAO(String dataTable, String dvColumn, String idColumn, String predicate) {
+
+	public ModelTrainingDataDAO(String dataTable, String[] ivColumns, String dvColumn, String idColumn, String predicate) {
 		this.db = new SQLDatabase(server, database, userName, password);
 		this.dataTable = dataTable;
+		this.ivColumns = ivColumns;
 		this.dvColumn = dvColumn;
 		this.idColumn = idColumn;
 		this.predicate = predicate;
@@ -59,8 +61,18 @@ public class ModelTrainingDataDAO {
 	public void setIdColumn(String idColumn) {
 		this.idColumn = idColumn;
 	}
+	
+	public String getPredicate() {
+		return predicate;
+	}
 
+	public void setPredicate(String predicate) {
+		this.predicate = predicate;
+	}
+	
 	public String[] getIvColumns() {
+		
+		/*
 		String sql = String.format("SELECT TOP 1 * FROM [%s] WHERE %s", dataTable, this.getSQLPredicate());
 		Map<String,String> row = this.db.getQueryRow(sql);
 		if(row.size() < 2) throw new RuntimeException("Data source table must have at least 2 columns");
@@ -68,13 +80,19 @@ public class ModelTrainingDataDAO {
 		String[] ivColumns = new String[row.size() - 2];
 		int i = 0;
 		for(String c : row.keySet()) {
-			if(!c.equalsIgnoreCase(this.dvColumn) && !c.equalsIgnoreCase(this.idColumn)) {
+			if(!c.equalsIgnoreCase(this.dvColumn) && !c.equalsIgnoreCase(this.idColumn) && !c.equalsIgnoreCase("foldID")) {
 				ivColumns[i] = "[" + c + "]";
 				i++;
 			}
 		}
+		*/
 		
 		return ivColumns;
+	}
+	
+	public Vector<Map<String,String>> getColumnInfo() {
+		String sql = String.format("SELECT c.name as [column], t.name as [type], c.is_nullable, CASE c.name WHEN '%s' THEN 1 ELSE 0 END as isIDColumn, CASE c.name WHEN '%s' THEN 1 ELSE 0 END as isDVColumn FROM sys.columns c JOIN sys.types t ON c.system_type_id = t.system_type_id WHERE c.object_id=object_id('%s') ORDER BY c.column_id", this.idColumn, this.dvColumn, this.dataTable);
+		return this.db.getQueryRows(sql);
 	}
 
 	public boolean getDVIsBinary() {

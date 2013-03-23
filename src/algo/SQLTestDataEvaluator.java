@@ -20,8 +20,8 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 	protected String predicate;
 	protected String detailColumn;
 	
-	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, EvaluationType t) {
-		this(db, tableName, ivColumns, dvColumn, null, null, t);
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, EvaluationType t) {
+		this(db, tableName, ivColumns, dvColumn, predicate, null, t);
 	}
 
 	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
@@ -89,10 +89,13 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 	}
 	
 	protected String getTestDataQuery() {
-		String ivSelectList = Arrays.toString(this.ivColumns);
-		ivSelectList = ivSelectList.substring(1, ivSelectList.length() - 1);
+		StringBuilder b = new StringBuilder();
+		for(String column : this.ivColumns) {
+			if(b.length() > 0) b.append(", ");
+			b.append(String.format("[%s]", column));
+		}
 		//TODO: support missing DV data in query
-		return String.format("SELECT %s, %s %s FROM %s WHERE 1=1 AND [%s] IS NOT NULL %s", ivSelectList, this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, this.dvColumn, (this.predicate == null ? "" : " AND " + this.predicate));
+		return String.format("SELECT %s, [%s] %s FROM [%s] WHERE 1=1 AND [%s] IS NOT NULL %s", b.toString(), this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, this.dvColumn, (this.predicate == null ? "" : " AND " + this.predicate));
 	}
 
 	@Override
