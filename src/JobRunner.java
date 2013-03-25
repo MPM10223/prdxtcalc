@@ -72,6 +72,17 @@ public abstract class JobRunner {
 					
 					break;
 					
+				case APPLY_MODEL:
+					
+					// args usage: modelID modelInputSetID
+					if(jobArgs.length != 2) throw new RuntimeException();
+					modelID = Integer.parseInt(jobArgs[0]);
+					int modelInputSetID = Integer.parseInt(jobArgs[1]);
+					
+					applyModel(modelID, modelInputSetID);
+					
+					break;
+					
 				default:
 					throw new RuntimeException(String.format("Unsupported jobTypeID: %d", jobTypeID));
 				}
@@ -79,7 +90,7 @@ public abstract class JobRunner {
 				dao.logJobCompleted(jobID);
 		
 			} catch(Exception e) {
-				dao.logJobFailed(jobID, e);
+				//dao.logJobFailed(jobID, e);
 				throw new RuntimeException(e);
 			}
 		}
@@ -104,6 +115,10 @@ public abstract class JobRunner {
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);
 		
+	}
+	
+	protected static void applyModel(int modelID, int modelInputSetID) {
+		//TODO
 	}
 	
 	protected static Algorithm<PredictiveModel> getAlgorithmFromID(int algorithmID) {

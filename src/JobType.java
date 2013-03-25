@@ -1,7 +1,8 @@
 
 public enum JobType {
 	BUILD_MODEL(1),
-	EVALUATE_MODEL(2);
+	EVALUATE_MODEL(2),
+	APPLY_MODEL(3);
 	
 	private int value;
 	
@@ -15,6 +16,8 @@ public enum JobType {
 			return BUILD_MODEL;
 		case 2:
 			return EVALUATE_MODEL;
+		case 3:
+			return APPLY_MODEL;
 		default:
 			throw new RuntimeException();
 		}

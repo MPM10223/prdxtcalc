@@ -127,7 +127,7 @@ public class JobRunnerDAO {
 	}
 
 	public void logJobStarted(int jobID) {
-		//logJobStatusChange(jobID, 0, 1);
+		logJobStatusChange(jobID, 0, 1);
 	}
 
 	public void logJobCompleted(int jobID) {
@@ -144,7 +144,17 @@ public class JobRunnerDAO {
 		
 		if(results.size() == 0) throw new RuntimeException("Invalid jobID / status combination - no matching job/state found");
 		
-		sql = String.format("UPDATE [%s] SET jobStatus = %d WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, newStatus, jobID, this.getCalcServerID(), oldStatus);
+		String dateStampColumn = null;
+		if(oldStatus == 0 && newStatus == 1) dateStampColumn = "startTime";
+		if(oldStatus == 1 && newStatus == 2) dateStampColumn = "endTime";
+		if(oldStatus == 1 && newStatus == 3) dateStampColumn = "endTime";
+		
+		String dateStampSQL = "";
+		if(dateStampColumn != null) {
+			dateStampSQL = String.format(", [%s] = getDate()", dateStampColumn);
+		}
+
+		sql = String.format("UPDATE [%s] SET jobStatus = %d %s WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, newStatus, dateStampSQL, jobID, this.getCalcServerID(), oldStatus);
 		db.executeQuery(sql);
 	}
 }

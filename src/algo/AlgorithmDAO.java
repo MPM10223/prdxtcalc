@@ -26,4 +26,14 @@ public class AlgorithmDAO extends ModelTrainingDataDAO {
 		
 		return b.toString();
 	}
+	
+	public String getSourceDataQuery() {
+		return String.format("SELECT %s FROM [%s] WHERE [%s] IS NOT NULL AND %s ORDER BY [%s]"
+				, this.getColumnList(",", "[", "]", true, true)
+				, this.getDataTable()
+				, this.getDvColumn()
+				, this.getSQLPredicate()
+				, this.getIdColumn()
+				);
+	}
 }
