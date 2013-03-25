@@ -40,11 +40,9 @@ public class DNNGeneticAlgorithm extends Algorithm<DiscretizedNeuralNetwork> {
 	@Override
 	public DiscretizedNeuralNetwork buildModel(AlgorithmDAO dao) {
 		
-		int networkSize = dao.getIvColumns().length;
-		
-		DiscretizedNeuralNetworkGenerator generator = new DiscretizedNeuralNetworkGenerator(networkSize);
+		DiscretizedNeuralNetworkGenerator generator = new DiscretizedNeuralNetworkGenerator(dao.getIvFeatureIDs());
 		EvaluationType et = (dao.getDVIsBinary() ? EvaluationType.BOOLEAN : EvaluationType.CONTINUOUS_R2); // TODO: detect & support discrete non-binary
-		SQLTestDataEvaluator<DiscretizedNeuralNetwork> fitness = new SQLTestDataEvaluator<DiscretizedNeuralNetwork>(dao.getDb(), dao.getDataTable(), dao.getIvColumns(), dao.getDvColumn(), dao.getPredicate(), et); 
+		SQLTestDataEvaluator<DiscretizedNeuralNetwork> fitness = new SQLTestDataEvaluator<DiscretizedNeuralNetwork>(dao.getDb(), dao.getDataTable(), dao.getIvColumns(), dao.getIvFeatureIDs(), dao.getDvColumn(), dao.getPredicate(), et); 
 		
 		GeneticSearch<DiscretizedNeuralNetwork> s = new GeneticSearch<DiscretizedNeuralNetwork>(generator, fitness, numOrganisms, maxTrials, minMutationRate, maxMutationRate, minCrossoverRate, maxCrossoverRate, ct); 
 		this.solution = s.search();

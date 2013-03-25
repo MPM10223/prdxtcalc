@@ -6,13 +6,15 @@ public class ProblemDefinition {
 	protected String dvColumn;
 	protected String idColumn;
 	protected String[] ivColumns;
+	protected int[] ivFeatureIDs;
 	
-	public ProblemDefinition(String table, String dvColumn, String idColumn, String[] ivColumns) {
+	public ProblemDefinition(String table, String dvColumn, String idColumn, String[] ivColumns, int[] ivFeatureIDs) {
 		super();
 		this.table = table;
 		this.dvColumn = dvColumn;
 		this.idColumn = idColumn;
 		this.ivColumns = ivColumns;
+		this.ivFeatureIDs = ivFeatureIDs;
 	}
 	
 	public String getTable() {
@@ -38,6 +40,12 @@ public class ProblemDefinition {
 	}
 	public void setIvColumns(String[] ivColumns) {
 		this.ivColumns = ivColumns;
+	}
+	public void setIvFeatureIDs(int[] ivFeatureIDs) {
+		this.ivFeatureIDs = ivFeatureIDs;
+	}
+	public int[] getIvFeatureIDs() {
+		return ivFeatureIDs;
 	}
 
 }

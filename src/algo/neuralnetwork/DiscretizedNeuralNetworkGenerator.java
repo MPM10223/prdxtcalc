@@ -11,7 +11,7 @@ import algo.util.search.IOrganismGenerator;
 
 public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<DiscretizedNeuralNetwork> {
 	
-	protected int networkSize;
+	protected int[] inputFeatures;
 	
 	protected double minimumSynapseWeight;
 	protected double maximumSynapseWeight;
@@ -22,12 +22,12 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 	public static final int BYTES_PER_SEGMENT = 8;
 	public static final int MAX_DISCRETIZATION_THRESHHOLDS = 4;
 	
-	public DiscretizedNeuralNetworkGenerator(int networkSize) {
-		this(networkSize, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+	public DiscretizedNeuralNetworkGenerator(int[] inputFeatures) {
+		this(inputFeatures, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
 	}
 	
-	public DiscretizedNeuralNetworkGenerator(int networkSize, double minimumSynapseWeight, double maximumSynapseWeight, double minimumInputThreshhold, double maximumInputThreshhold) {
-		this.networkSize = networkSize;
+	public DiscretizedNeuralNetworkGenerator(int[] inputFeatures, double minimumSynapseWeight, double maximumSynapseWeight, double minimumInputThreshhold, double maximumInputThreshhold) {
+		this.inputFeatures = inputFeatures;
 		this.minimumSynapseWeight = minimumSynapseWeight;
 		this.maximumSynapseWeight = maximumSynapseWeight;
 		this.minimumInputThreshhold = minimumInputThreshhold;
@@ -44,9 +44,9 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 		
 		if(dna.length != dnaLength) throw new IllegalArgumentException();
 		
-		int sectionOneLength = (int)Math.pow(this.networkSize, 2) * BYTES_PER_SEGMENT;
-		int sectionTwoLength = this.networkSize * BYTES_PER_SEGMENT;
-		int sectionThreeLength = this.networkSize * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT;
+		int sectionOneLength = (int)Math.pow(this.getNetworkSize(), 2) * BYTES_PER_SEGMENT;
+		int sectionTwoLength = this.getNetworkSize() * BYTES_PER_SEGMENT;
+		int sectionThreeLength = this.getNetworkSize() * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT;
 		
 		ByteBuffer b = ByteBuffer.wrap(dna);
 		
@@ -64,32 +64,36 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 		double[] htoWeights = this.generateHiddenToOutputWeights(htoWeightData);
 		double[][] inputThreshholds = this.generateInputThreshholds(threshholdData);
 		
-		DiscretizedNeuralNetwork dnn = new DiscretizedNeuralNetwork(this.networkSize, ithWeights, htoWeights, inputThreshholds);
+		DiscretizedNeuralNetwork dnn = new DiscretizedNeuralNetwork(this.inputFeatures, this.getNetworkSize(), ithWeights, htoWeights, inputThreshholds);
 		return dnn;
+	}
+	
+	protected int getNetworkSize() {
+		return this.inputFeatures.length;
 	}
 
 	protected double[][] generateInputToHiddenWeights(byte[] data) {
 		// N x N
-		if(data.length != ((int)Math.pow(this.networkSize, 2) * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
+		if(data.length != ((int)Math.pow(this.getNetworkSize(), 2) * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
 		
-		return GeneratorUtility.generateDoubleMatrix(data, this.networkSize, this.minimumSynapseWeight, this.maximumSynapseWeight);
+		return GeneratorUtility.generateDoubleMatrix(data, this.getNetworkSize(), this.minimumSynapseWeight, this.maximumSynapseWeight);
 	}
 
 	protected double[] generateHiddenToOutputWeights(byte[] data) {
 		// N
-		if(data.length != (this.networkSize * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
+		if(data.length != (this.getNetworkSize() * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
 		
 		return GeneratorUtility.generateDoubleArray(data, this.minimumSynapseWeight, this.maximumSynapseWeight);
 	}
 	
 	protected double[][] generateInputThreshholds(byte[] data) {
 		// t x N
-		if(data.length != (this.networkSize * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
+		if(data.length != (this.getNetworkSize() * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
 		
-		double[][] t = GeneratorUtility.generateDoubleMatrix(data, this.networkSize, this.minimumInputThreshhold, this.maximumInputThreshhold);
+		double[][] t = GeneratorUtility.generateDoubleMatrix(data, this.getNetworkSize(), this.minimumInputThreshhold, this.maximumInputThreshhold);
 		
 		// sort
-		for(int i = 0; i < this.networkSize; i++) {
+		for(int i = 0; i < this.getNetworkSize(); i++) {
 			Arrays.sort(t[i]);
 		}
 		
@@ -103,7 +107,7 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 		// 2) N		: hidden > output weights
 		// 3) t x N	: discretization threshholds
 		int bytesPerSegment = BYTES_PER_SEGMENT;
-		int numSegments = (int)Math.pow(this.networkSize, 2) + (1 + MAX_DISCRETIZATION_THRESHHOLDS) * this.networkSize;
+		int numSegments = (int)Math.pow(this.getNetworkSize(), 2) + (1 + MAX_DISCRETIZATION_THRESHHOLDS) * this.getNetworkSize();
 		return bytesPerSegment * numSegments;
 	}
 

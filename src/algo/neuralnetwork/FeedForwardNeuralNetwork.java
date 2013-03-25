@@ -4,7 +4,9 @@ import java.util.Arrays;
 
 public class FeedForwardNeuralNetwork extends NeuralNetwork {
 	
-	public FeedForwardNeuralNetwork(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses) {
+	public FeedForwardNeuralNetwork(int[] inputFeatures, int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses) {
+		
+		super(inputFeatures);
 		
 		Neuron[] inputNeurons = new Neuron[layerSize];
 		for(int i = 0; i < layerSize; i++) {

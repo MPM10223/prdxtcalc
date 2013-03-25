@@ -16,19 +16,19 @@ public class DiscretizedNeuralNetworkGeneratorTest {
 
 	@Test
 	public void test_minMax1() {
-		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(1);
+		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(new int[] {1});
 		Assert.assertEquals(8 * (1 * 1 + 1 + (1 * 4)), g.getDNASize());
 	}
 
 	@Test
 	public void test_minMax12() {
-		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(12);
+		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(new int[] {1,2,3,4,5,6,7,8,8,10,11,12});
 		Assert.assertEquals(8 * (12 * 12 + 12 + (4 * 12)), g.getDNASize());
 	}
 	
 	@Test
 	public void test_generate1() {
-		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(1);
+		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(new int[] {1});
 		
 		byte[] dna = new byte[g.getDNASize()];
 		DiscretizedNeuralNetwork dnn = g.generate(dna);
@@ -39,7 +39,7 @@ public class DiscretizedNeuralNetworkGeneratorTest {
 	
 	@Test
 	public void test_generate12() {
-		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(12);
+		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(new int[] {1,2,3,4,5,6,7,8,8,10,11,12});
 		
 		Random r = new Random(94025);
 		byte[] dna = new byte[g.getDNASize()];

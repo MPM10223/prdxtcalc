@@ -12,14 +12,16 @@ public class SQLDatabase extends Database {
 	
 	protected String server;
 	protected String database;
+	protected String port;
 	protected String userName;
 	protected String password;
 	
 	protected static final String DriverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver"; 
 
-	public SQLDatabase(String server, String database, String userName, String password) {
+	public SQLDatabase(String server, String port, String database, String userName, String password) {
 		super();
 		this.server = server;
+		this.port = port;
 		this.database = database;
 		this.userName = userName;
 		this.password = password;
@@ -27,7 +29,7 @@ public class SQLDatabase extends Database {
 	
 	public String getConnectionString() {
 		//http://msdn.microsoft.com/en-us/library/ms378428.aspx
-		return String.format("jdbc:sqlserver://%s;DatabaseName=%s;user=%s;password=%s", server, database, userName, password);
+		return String.format("jdbc:sqlserver://%s:%s;DatabaseName=%s;user=%s;password=%s", server, port, database, userName, password);
 		//return String.format("jdbc:sqlserver://%s;DatabaseName=%s;integratedSecurity=true;", server, database);
 	}
 	
@@ -150,5 +152,24 @@ public class SQLDatabase extends Database {
 	protected String getDriverClassName() {
 		return DriverClassName;
 	}
+	
+	public String getServer() {
+		return server;
+	}
+	
+	public String getPort() {
+		return port;
+	}
 
+	public String getDatabase() {
+		return database;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
 }

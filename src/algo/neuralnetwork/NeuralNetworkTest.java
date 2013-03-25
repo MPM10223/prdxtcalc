@@ -8,13 +8,14 @@ public class NeuralNetworkTest {
 	@Test
 	public void testXOR() {
 		
+		int[] inputFeatures = new int[] {1, 2};
 		Neuron[] inputNeurons = new Neuron[] { new Neuron(0), new Neuron(0) };
 		Neuron[] hiddenNeurons = new Neuron[] { new Neuron(1.5), new Neuron(0.5) };
 		double[][] inputToHiddenSynapses = new double[][] { { 1, 1 }, { 1, 1} };
 		Neuron[] outputNeurons = new Neuron[] { new Neuron(0.5) };
 		double[][] hiddenToOutputSynapses = new double[][] { { -1 }, { 1 } };
 		
-		NeuralNetwork ann = new NeuralNetwork(inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
+		NeuralNetwork ann = new NeuralNetwork(inputFeatures, inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
 		
 		double[] output;
 		
@@ -34,13 +35,14 @@ public class NeuralNetworkTest {
 	@Test
 	public void testOR() {
 		
+		int[] inputFeatures = new int[] {1, 2};
 		Neuron[] inputNeurons = new Neuron[] { new Neuron(0), new Neuron(0) };
 		Neuron[] hiddenNeurons = new Neuron[] { new Neuron(0.9) };
 		double[][] inputToHiddenSynapses = new double[][] { { 1 }, { 1 } };
 		Neuron[] outputNeurons = new Neuron[] { new Neuron(1.0) };
 		double[][] hiddenToOutputSynapses = new double[][] { { 1 } };
 		
-		NeuralNetwork ann = new NeuralNetwork(inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
+		NeuralNetwork ann = new NeuralNetwork(inputFeatures, inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
 		
 		double[] output;
 		
@@ -60,13 +62,14 @@ public class NeuralNetworkTest {
 	@Test
 	public void testAND() {
 		
+		int[] inputFeatures = new int[] {1, 2};
 		Neuron[] inputNeurons = new Neuron[] { new Neuron(0), new Neuron(0) };
 		Neuron[] hiddenNeurons = new Neuron[] { new Neuron(1.5) };
 		double[][] inputToHiddenSynapses = new double[][] { { 1 }, { 1 } };
 		Neuron[] outputNeurons = new Neuron[] { new Neuron(0.5) };
 		double[][] hiddenToOutputSynapses = new double[][] { { 1 } };
 		
-		NeuralNetwork ann = new NeuralNetwork(inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
+		NeuralNetwork ann = new NeuralNetwork(inputFeatures, inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
 		
 		double[] output;
 		

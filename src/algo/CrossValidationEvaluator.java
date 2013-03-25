@@ -11,12 +11,12 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 	protected int algorithmID;
 	protected int modelID;
 
-	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
-		this(db, dataTable, ivColumns, dvColumn, idColumn, 5, problemID, algorithmID, modelID);
+	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
+		this(db, dataTable, ivColumns, ivFeatureIDs, dvColumn, idColumn, 5, problemID, algorithmID, modelID);
 	}
 	
-	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int numFolds, int problemID, int algorithmID, int modelID) {
-		this(new CrossValidationEvaluatorDAO(db, dataTable, ivColumns, dvColumn, idColumn, problemID, algorithmID, modelID), numFolds);
+	public CrossValidationEvaluator(SQLDatabase db, String dataTable, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String idColumn, int numFolds, int problemID, int algorithmID, int modelID) {
+		this(new CrossValidationEvaluatorDAO(db, dataTable, ivColumns, ivFeatureIDs, dvColumn, idColumn, problemID, algorithmID, modelID), numFolds);
 	}
 	
 	public CrossValidationEvaluator(CrossValidationEvaluatorDAO dao, int numFolds) {
@@ -40,7 +40,7 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 			System.out.println(String.format("Building model on all but fold %d...", i));
 			
 			// run the algorithm on all data but this fold
-			PredictiveModel m = subject.buildModel(new AlgorithmDAO(dao.getDb(), dao.getFoldTable(), dao.getIvColumns(), dao.getDvColumn(), dao.getIdColumn(), String.format("foldID <> %d", i)));
+			PredictiveModel m = subject.buildModel(new AlgorithmDAO(dao.getDb(), dao.getFoldTable(), dao.getIvColumns(), dao.getIvFeatureIDs(), dao.getDvColumn(), dao.getIdColumn(), String.format("foldID <> %d", i)));
 			
 			System.out.println(String.format("Evaluating on fold %d...", i));
 			
@@ -49,6 +49,7 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 					dao.getDb()
 					, dao.getFoldTable() // evaluation pool
 					, dao.getIvColumns()
+					, dao.getIvFeatureIDs()
 					, dao.getDvColumn()
 					, String.format("foldID = %d", i) // evaluate based on this fold alone
 					, (dao.getDVIsBinary() ? EvaluationType.BOOLEAN : EvaluationType.CONTINUOUS_R2)); //TODO: discrete non-binary

@@ -11,8 +11,8 @@ public class CrossValidationEvaluatorDAO extends ModelTrainingDataDAO {
 	protected int algorithmID;
 	protected int modelID;
 
-	public CrossValidationEvaluatorDAO(SQLDatabase db, String dataTable, String[] ivColumns, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
-		super(db, dataTable, ivColumns, dvColumn, idColumn, null); // predicates not supported for now
+	public CrossValidationEvaluatorDAO(SQLDatabase db, String dataTable, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String idColumn, int problemID, int algorithmID, int modelID) {
+		super(db, dataTable, ivColumns, ivFeatureIDs, dvColumn, idColumn, null); // predicates not supported for now
 		this.problemID = problemID;
 		this.algorithmID = algorithmID;
 		this.modelID = modelID;

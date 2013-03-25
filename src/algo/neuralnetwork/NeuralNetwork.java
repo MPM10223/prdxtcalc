@@ -12,11 +12,12 @@ public class NeuralNetwork extends PredictiveModel {
 	protected int numHiddenNeurons;
 	protected int numOutputNeurons;
 	
-	public NeuralNetwork() {
-		//NoOp
+	public NeuralNetwork(int[] inputFeatures) {
+		super(inputFeatures);
 	}
 	
-	public NeuralNetwork(Neuron[] inputNeurons, Neuron[] hiddenNeurons, double[][] inputToHiddenSynapses, Neuron[] outputNeurons, double[][] hiddenToOutputSynapses) {
+	public NeuralNetwork(int[] inputFeatures, Neuron[] inputNeurons, Neuron[] hiddenNeurons, double[][] inputToHiddenSynapses, Neuron[] outputNeurons, double[][] hiddenToOutputSynapses) {
+		super(inputFeatures);
 		this.initialize(inputNeurons, hiddenNeurons, inputToHiddenSynapses, outputNeurons, hiddenToOutputSynapses);
 	}
 	
@@ -143,8 +144,8 @@ public class NeuralNetwork extends PredictiveModel {
 	}
 
 	@Override
-	public double predict(double[] ivs) {
-		return this.processSignal(ivs)[0];
+	protected double predict(double[] indexedInputs) {
+		return this.processSignal(indexedInputs)[0];
 	}
 
 	@Override

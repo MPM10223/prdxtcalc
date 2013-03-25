@@ -13,8 +13,8 @@ public class JobRunnerDAO {
 	protected String jobQtable;
 	protected Integer calcServerID;
 	
-	public JobRunnerDAO(String server, String database, String jobQTable, String username, String password) {
-		this.db = new SQLDatabase(server, database, username, password);
+	public JobRunnerDAO(String server, String port, String database, String jobQTable, String username, String password) {
+		this.db = new SQLDatabase(server, port, database, username, password);
 		this.jobQtable = jobQTable;
 		this.calcServerID = null;
 	}
@@ -77,11 +77,12 @@ public class JobRunnerDAO {
 		String sql = String.format("SELECT sourceTable, idColumn FROM problems WHERE problemID = %d", problemID);
 		Map<String,String> row = db.getQueryRow(sql);
 		
-		sql = String.format("SELECT featureName, featureType, isDV, isIV FROM problemFeatures WHERE problemID = %d", problemID);
+		sql = String.format("SELECT featureID, featureName, featureType, isDV, isIV FROM problemFeatures WHERE problemID = %d", problemID);
 		Vector<Map<String,String>> rows = db.getQueryRows(sql);
 		
 		String dvColumn = null;
 		Vector<String> ivColumnList = new Vector<String>(rows.size());
+		Vector<Integer> ivFeatureIDList = new Vector<Integer>(rows.size());
 		for(Map<String,String> column : rows) {
 			if(column.get("isDV").equals("1")) {
 				if(dvColumn != null) throw new RuntimeException("Multiple DVs not supported");
@@ -89,13 +90,19 @@ public class JobRunnerDAO {
 			}
 			if(column.get("isIV").equals("1")) {
 				ivColumnList.add(column.get("featureName"));
+				ivFeatureIDList.add(Integer.parseInt(column.get("featureID")));
 			}
 		}
 		
 		String[] ivColumns = new String[ivColumnList.size()];
 		ivColumnList.copyInto(ivColumns);
 		
-		return new ProblemDefinition(row.get("sourceTable"), dvColumn, row.get("idColumn"), ivColumns);
+		int[] ivFeatureIDs = new int[ivFeatureIDList.size()];
+		for(int i = 0; i < ivFeatureIDs.length; i++) {
+			ivFeatureIDs[i] = ivFeatureIDList.get(i);
+		}
+		
+		return new ProblemDefinition(row.get("sourceTable"), dvColumn, row.get("idColumn"), ivColumns, ivFeatureIDs);
 	}
 	
 	public String getModelClass(int modelID) {
@@ -120,14 +127,14 @@ public class JobRunnerDAO {
 	}
 
 	public void logJobStarted(int jobID) {
-		logJobStatusChange(jobID, 0, 1);
+		//logJobStatusChange(jobID, 0, 1);
 	}
 
 	public void logJobCompleted(int jobID) {
 		logJobStatusChange(jobID, 1, 2);
 	}
 	
-	public void logJobFailed(int jobID) {
+	public void logJobFailed(int jobID, Exception e) {
 		logJobStatusChange(jobID, 1, 3);
 	}
 	

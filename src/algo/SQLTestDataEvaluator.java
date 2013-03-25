@@ -1,10 +1,8 @@
 package algo;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
-
-import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
 import algo.util.search.IFitnessFunction;
 import sqlWrappers.SQLDatabase;
@@ -16,19 +14,24 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 	protected SQLDatabase db;
 	protected String tableName;
 	protected String[] ivColumns;
+	protected int[] ivFeatureIDs;
 	protected String dvColumn;
 	protected String predicate;
 	protected String detailColumn;
 	
-	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, EvaluationType t) {
-		this(db, tableName, ivColumns, dvColumn, predicate, null, t);
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, EvaluationType t) {
+		this(db, tableName, ivColumns, ivFeatureIDs, dvColumn, predicate, null, t);
 	}
 
-	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
 		super();
 		this.db = db;
 		this.tableName = tableName;
+		
+		if(ivColumns.length != ivFeatureIDs.length) throw new RuntimeException();
+		
 		this.ivColumns = ivColumns;
+		this.ivFeatureIDs = ivFeatureIDs;
 		this.dvColumn = dvColumn;
 		this.predicate = predicate;
 		this.detailColumn = detailColumn;
@@ -42,15 +45,17 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 			
 			Map<String,String> row = results.get(i);
 			
-			double[] ivs = new double[ivColumns.length];
+			Map<Integer,Double> ivs = new HashMap<Integer,Double>(ivColumns.length);
+			
 			for(int j = 0; j < ivColumns.length; j++) {
 				String ivColumn = ivColumns[j].replace("[", "").replace("]", "");
 				String ivValueString = row.get(ivColumn);
 				if(ivValueString != null) {
 					double ivValue = Double.parseDouble(ivValueString);
-					ivs[j] = ivValue;
+					ivs.put(this.ivFeatureIDs[j], ivValue);
 				} else {
 					//TODO: deal with missing IV data
+					ivs.put(this.ivFeatureIDs[j], null);
 				}
 			}
 			
@@ -112,8 +117,8 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 		return this.ivColumns;
 	}
 
-	public double[] getRangeOfIV(int ivIndex) {
-		return e.getRangeOfIV(ivIndex);
+	public double[] getRangeOfIV(int featureID) {
+		return e.getRangeOfIV(featureID);
 	}
 
 	public double getDVMean() {

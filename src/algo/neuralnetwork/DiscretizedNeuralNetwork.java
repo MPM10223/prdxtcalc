@@ -19,12 +19,13 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	protected FeedForwardNeuralNetwork nn;
 	protected double[][] threshholds;
 	
-	public DiscretizedNeuralNetwork(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
+	public DiscretizedNeuralNetwork(int[] inputFeatures, int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
+		super(inputFeatures);
 		this.initialize(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses, threshholds);
 	}
 	
 	private void initialize(int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
-		this.nn = new FeedForwardNeuralNetwork(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses);
+		this.nn = new FeedForwardNeuralNetwork(this.inputFeatures, layerSize, inputToHiddenSynapses, hiddenToOutputSynapses);
 		this.threshholds = threshholds;
 	}
 	
@@ -116,8 +117,8 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	}
 
 	@Override
-	public double predict(double[] ivs) {
-		return nn.predict(this.discretize(ivs));
+	protected double predict(double[] indexedInputs) {
+		return nn.predict(this.discretize(indexedInputs));
 	}
 	
 	@Override

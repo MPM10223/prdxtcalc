@@ -22,16 +22,17 @@ public abstract class JobRunner {
 	
 	public static void main(String[] args) {
 		
-		if(args.length != 5)
+		if(args.length != 6)
 			throw new RuntimeException();
 		
 		String server = args[0];
-		String database = args[1];
-		String jobQtable = args[2];
-		String username = args[3];
-		String password = args[4];
+		String port = args[1];
+		String database = args[2];
+		String jobQtable = args[3];
+		String username = args[4];
+		String password = args[5];
 		
-		if(JobRunner.dao == null) JobRunner.dao = new JobRunnerDAO(server, database, jobQtable, username, password);
+		if(JobRunner.dao == null) JobRunner.dao = new JobRunnerDAO(server, port, database, jobQtable, username, password);
 		
 		Map<String,String> pop = dao.popJobQueue();
 		
@@ -78,7 +79,8 @@ public abstract class JobRunner {
 				dao.logJobCompleted(jobID);
 		
 			} catch(Exception e) {
-				dao.logJobFailed(jobID);
+				dao.logJobFailed(jobID, e);
+				throw new RuntimeException(e);
 			}
 		}
 		
@@ -89,7 +91,7 @@ public abstract class JobRunner {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
-		PredictiveModel m = a.buildModel(new AlgorithmDAO(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), null));
+		PredictiveModel m = a.buildModel(new AlgorithmDAO(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getIvFeatureIDs(), problemData.getDvColumn(), problemData.getIdColumn(), null));
 		m.toDB(dao.getDB(), problemID, algorithmID);
 	}
 	
@@ -97,7 +99,7 @@ public abstract class JobRunner {
 		
 		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);	
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
-		CrossValidationEvaluator e = new CrossValidationEvaluator(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
+		CrossValidationEvaluator e = new CrossValidationEvaluator(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getIvFeatureIDs(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
 		double cvr2 = e.evaluate(a);
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);

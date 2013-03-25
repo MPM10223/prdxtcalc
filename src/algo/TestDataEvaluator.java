@@ -43,11 +43,12 @@ public class TestDataEvaluator implements IFitnessFunction<PredictiveModel> {
 		return Math.abs(prediction - actual) < 0.000001;
 	}
 
-	public double[] getRangeOfIV(int ivIndex) {
+	public double[] getRangeOfIV(int featureID) {
 		double[] range = new double[] {Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
 		for(int i = 0; i < this.testData.length; i++) {
-			if(this.testData[i].independentVariables[ivIndex] < range[0]) range[0] = this.testData[i].independentVariables[ivIndex];
-			if(this.testData[i].independentVariables[ivIndex] > range[1]) range[1] = this.testData[i].independentVariables[ivIndex];
+			double ivValue = this.testData[i].getIndependentVariables().get(featureID);
+			if(ivValue < range[0]) range[0] = ivValue;
+			if(ivValue > range[1]) range[1] = ivValue;
 		}
 		return range;
 	}

@@ -1,28 +1,30 @@
 package algo;
 
+import java.util.Map;
+
 public class Observation {
 	
-	protected double[] independentVariables;
+	protected Map<Integer, Double> independentVariables;
 	protected double dependentVariable;
 	protected Double prediction;
 	protected String detail;
 
-	public Observation(double[] independentVariables, double dependentVariable) {
+	public Observation(Map<Integer, Double> independentVariables, double dependentVariable) {
 		this(independentVariables, dependentVariable, null);
 	}
 	
-	public Observation(double[] independentVariables, double dependentVariable, String detail) {
+	public Observation(Map<Integer, Double> independentVariables, double dependentVariable, String detail) {
 		super();
 		this.independentVariables = independentVariables;
 		this.dependentVariable = dependentVariable;
 		this.detail = detail;
 	}
 	
-	public double[] getIndependentVariables() {
+	public Map<Integer, Double> getIndependentVariables() {
 		return independentVariables;
 	}
 
-	public void setIndependentVariables(double[] independentVariables) {
+	public void setIndependentVariables(Map<Integer, Double> independentVariables) {
 		this.independentVariables = independentVariables;
 	}
 
