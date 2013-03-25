@@ -4,17 +4,27 @@ import java.util.Map;
 
 public class Observation {
 	
+	protected String identifier;
 	protected Map<Integer, Double> independentVariables;
-	protected double dependentVariable;
+	protected Double dependentVariable;
 	protected Double prediction;
 	protected String detail;
 
-	public Observation(Map<Integer, Double> independentVariables, double dependentVariable) {
-		this(independentVariables, dependentVariable, null);
+	public Observation(Map<Integer, Double> independentVariables, Double dependentVariable) {
+		this(null, independentVariables, dependentVariable); // missing detail and identifier
 	}
 	
-	public Observation(Map<Integer, Double> independentVariables, double dependentVariable, String detail) {
+	public Observation(String identifier, Map<Integer, Double> independentVariables, Double dependentVariable) {
+		this(identifier, independentVariables, dependentVariable, null); // missing detail
+	}
+	
+	public Observation(Map<Integer, Double> independentVariables, Double dependentVariable, String detail) {
+		this(null, independentVariables, dependentVariable, detail); // missing identifier
+	}
+	
+	public Observation(String identifier, Map<Integer, Double> independentVariables, Double dependentVariable, String detail) {
 		super();
+		this.identifier = identifier;
 		this.independentVariables = independentVariables;
 		this.dependentVariable = dependentVariable;
 		this.detail = detail;
@@ -32,7 +42,7 @@ public class Observation {
 		return dependentVariable;
 	}
 
-	public void setDependentVariable(double dependentVariable) {
+	public void setDependentVariable(Double dependentVariable) {
 		this.dependentVariable = dependentVariable;
 	}
 
@@ -51,9 +61,17 @@ public class Observation {
 	public void setDetail(String detail) {
 		this.detail = detail;
 	}
+	
+	public String getIdentifier() {
+		return identifier;
+	}
+
+	public void setIdentifier(String identifier) {
+		this.identifier = identifier;
+	}
 
 	protected Observation clone() {
-		Observation o = new Observation(this.independentVariables, this.dependentVariable);
+		Observation o = new Observation(this.identifier, this.independentVariables, this.dependentVariable);
 		o.setPrediction(this.prediction);
 		return o;
 	}

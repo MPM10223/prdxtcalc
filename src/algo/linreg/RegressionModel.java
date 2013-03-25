@@ -13,6 +13,10 @@ public class RegressionModel extends PredictiveModel {
 	protected double intercept;
 	protected double[][] ivRanges;
 	
+	public RegressionModel() {
+		super();
+	}
+	
 	public RegressionModel(int[] inputFeatures, double[] coefficients, double intercept, double[][] ivRanges) {
 		super(inputFeatures);
 		this.coefficients = coefficients;

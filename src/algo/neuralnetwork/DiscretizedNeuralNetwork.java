@@ -19,6 +19,10 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	protected FeedForwardNeuralNetwork nn;
 	protected double[][] threshholds;
 	
+	public DiscretizedNeuralNetwork() {
+		super();
+	}
+	
 	public DiscretizedNeuralNetwork(int[] inputFeatures, int layerSize, double[][] inputToHiddenSynapses, double[] hiddenToOutputSynapses, double[][] threshholds) {
 		super(inputFeatures);
 		this.initialize(layerSize, inputToHiddenSynapses, hiddenToOutputSynapses, threshholds);

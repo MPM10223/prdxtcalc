@@ -1,8 +1,10 @@
 import java.util.Map;
+import java.util.Vector;
 
 import algo.Algorithm;
 import algo.AlgorithmDAO;
 import algo.CrossValidationEvaluator;
+import algo.Observation;
 import algo.PredictiveModel;
 
 import dao.JobRunnerDAO;
@@ -77,9 +79,9 @@ public abstract class JobRunner {
 					// args usage: modelID modelInputSetID
 					if(jobArgs.length != 2) throw new RuntimeException();
 					modelID = Integer.parseInt(jobArgs[0]);
-					int modelInputSetID = Integer.parseInt(jobArgs[1]);
+					int applyModelRunID = Integer.parseInt(jobArgs[1]);
 					
-					applyModel(modelID, modelInputSetID);
+					applyModel(modelID, applyModelRunID);
 					
 					break;
 					
@@ -117,8 +119,16 @@ public abstract class JobRunner {
 		
 	}
 	
-	protected static void applyModel(int modelID, int modelInputSetID) {
-		//TODO
+	protected static void applyModel(int modelID, int applyModelRunID) {
+
+		PredictiveModel m = getModelFromID(modelID);
+		Vector<Observation> targets = dao.getApplyModelTargets(applyModelRunID);
+		for(Observation target : targets) {
+			double prediction = m.predict(target.getIndependentVariables());
+			target.setPrediction(prediction);
+		}
+		dao.saveApplyModelResults(targets);
+		
 	}
 	
 	protected static Algorithm<PredictiveModel> getAlgorithmFromID(int algorithmID) {
@@ -140,6 +150,27 @@ public abstract class JobRunner {
 		}
 		
 		return a;
+	}
+	
+	protected static PredictiveModel getModelFromID(int modelID) {
+		String modelClass = dao.getModelClass(modelID);
+		
+		PredictiveModel m;
+		
+		try {
+			Class<? extends PredictiveModel> c = (Class<? extends PredictiveModel>) Class.forName("algo." + modelClass);
+			m = c.newInstance();
+		} catch (ClassNotFoundException e) {
+			throw new RuntimeException(e);
+		} catch (InstantiationException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+		
+		m.fromDB(dao.getDB(), modelID);
+		
+		return m;
 	}
 
 }

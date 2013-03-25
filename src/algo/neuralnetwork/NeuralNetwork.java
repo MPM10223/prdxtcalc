@@ -12,6 +12,10 @@ public class NeuralNetwork extends PredictiveModel {
 	protected int numHiddenNeurons;
 	protected int numOutputNeurons;
 	
+	public NeuralNetwork() {
+		super();
+	}
+	
 	public NeuralNetwork(int[] inputFeatures) {
 		super(inputFeatures);
 	}

@@ -9,39 +9,28 @@ import sqlWrappers.SQLDatabase;
 
 public abstract class PredictiveModel {
 	
+	// PROTECTED MEMBERS
 	protected Integer modelID;
 	protected int[] inputFeatures;
 	
+	// CONSTRUCTORS
+	public PredictiveModel() {
+		super();
+	}
+	
 	protected PredictiveModel(int[] inputFeatures) {
+		this();
 		this.inputFeatures = inputFeatures;
 	}
 	
+	// ABSTRACT METHODS
 	public abstract int getModelTypeID();
-	
 	protected abstract double predict(double[] indexedInputs);
 	
+	// PUBLIC METHODS
 	public double predict(Map<Integer, Double> ivs) {
 		double[] indexedInputs = this.getIndexedInputsFromFeatures(ivs);
 		return this.predict(indexedInputs);
-	}
-	
-	protected double[] getIndexedInputsFromFeatures(Map<Integer, Double> featureValues) {
-		double[] indexedInputs = new double[inputFeatures.length];
-		for(int inputIndex = 0; inputIndex < indexedInputs.length; inputIndex++) {
-			indexedInputs[inputIndex] = featureValues.get(inputFeatures[inputIndex]);
-		}
-		return indexedInputs;
-	}
-	
-	protected int getFeatureIDAtInputIndex(int inputIndex) {
-		return inputFeatures[inputIndex];
-	}
-	
-	protected int getInputIndexFromFeatureID(int featureID) {
-		for(int inputIndex = 0; inputIndex < this.inputFeatures.length; inputIndex++) {
-			if(this.getFeatureIDAtInputIndex(inputIndex) == featureID) return inputIndex;
-		}
-		throw new RuntimeException("featureID not found");
 	}
 	
 	public int toDB(SQLDatabase db, int problemID, int algoID) {
@@ -83,5 +72,25 @@ public abstract class PredictiveModel {
 			this.inputFeatures[i] = Integer.parseInt(row.get("featureID"));
 		}
 	}
-
+	
+	// PROTECTED METHODS
+	protected double[] getIndexedInputsFromFeatures(Map<Integer, Double> featureValues) {
+		double[] indexedInputs = new double[inputFeatures.length];
+		for(int inputIndex = 0; inputIndex < indexedInputs.length; inputIndex++) {
+			//TODO: handle missing data
+			indexedInputs[inputIndex] = featureValues.get(inputFeatures[inputIndex]);
+		}
+		return indexedInputs;
+	}
+	
+	protected int getFeatureIDAtInputIndex(int inputIndex) {
+		return inputFeatures[inputIndex];
+	}
+	
+	protected int getInputIndexFromFeatureID(int featureID) {
+		for(int inputIndex = 0; inputIndex < this.inputFeatures.length; inputIndex++) {
+			if(this.getFeatureIDAtInputIndex(inputIndex) == featureID) return inputIndex;
+		}
+		throw new RuntimeException("featureID not found");
+	}
 }

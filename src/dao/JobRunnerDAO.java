@@ -2,8 +2,12 @@ package dao;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
+
+import algo.Observation;
+import algo.util.dao.SQLInsertBuffer;
 
 import sqlWrappers.SQLDatabase;
 
@@ -156,5 +160,71 @@ public class JobRunnerDAO {
 
 		sql = String.format("UPDATE [%s] SET jobStatus = %d %s WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, newStatus, dateStampSQL, jobID, this.getCalcServerID(), oldStatus);
 		db.executeQuery(sql);
+	}
+
+	public Vector<Observation> getApplyModelTargets(int applyModelRunID) {
+		
+		Vector<Observation> targets = new Vector<Observation>();
+		
+		String sql = String.format("SELECT rt.applyModelTargetID, mf.featureID, i.value FROM applyModelRuns r JOIN applyModelTargets rt ON r.applyModelRunID = rt.applyModelRunID JOIN applyModelInputs i ON i.applyModelTargetID = rt.applyModelTargetID JOIN modelFeatures mf ON mf.modelID = i.modelID AND mf.inputIndex = i.inputIndex WHERE r.applyModelRunID = %d ORDER BY rt.applyModelTargetID, i.inputIndex", applyModelRunID);
+		Vector<Map<String,String>> results = db.getQueryRows(sql);
+		
+		if(results.size() > 0) {
+		
+			Integer targetID = null;
+			Map<Integer, Double> inputs = null;
+			
+			for(Map<String,String> row : results) {
+				int thisTargetID = Integer.parseInt(row.get("applyModelTargetID"));
+				if(targetID == null || targetID != thisTargetID) {
+					// save and store the old observation
+					if(inputs != null) {
+						targets.add(new Observation(String.valueOf(targetID), inputs, null));
+					}
+					
+					// start a new observation
+					inputs = new HashMap<Integer, Double>();
+					targetID = thisTargetID;
+				}
+				
+				Integer featureID = Integer.parseInt(row.get("featureID"));
+				Double value = Double.parseDouble(row.get("value"));
+				inputs.put(featureID, value);
+			}
+			
+			targets.add(new Observation(String.valueOf(targetID), inputs, null));
+		}
+		
+		return targets;
+	}
+
+	public void saveApplyModelResults(Vector<Observation> targets) {
+		// create temp table
+		String sql = String.format("IF object_id('%s') IS NOT NULL DROP TABLE [%s]", this.getSaveApplyModelTempTableName(), this.getSaveApplyModelTempTableName());
+		db.executeQuery(sql);
+		
+		sql = String.format("CREATE TABLE [%s] ( applyModelTargetID int not null, prediction float not null, PRIMARY KEY (applyModelTargetID) )", this.getSaveApplyModelTempTableName());
+		db.executeQuery(sql);
+		
+		// insert into temp table
+		SQLInsertBuffer b = new SQLInsertBuffer(this.db, this.getSaveApplyModelTempTableName(), new String[] {"applyModelTargetID", "prediction"} );
+		b.startBufferedInsert(targets.size());
+		for(Observation o : targets) {
+			b.insertRow(new String[] {o.getIdentifier(), String.valueOf(o.getPrediction())} );
+		}
+		b.finishBufferedInsert();
+		
+		// update permanent table with join
+		sql = String.format("UPDATE t SET t.prediction = p.prediction, t.predictionTime = getDate() FROM applyModelTargets t JOIN [%s] p ON t.applyModelTargetID = p.applyModelTargetID WHERE t.prediction IS NULL AND t.predictionTime IS NULL", this.getSaveApplyModelTempTableName());
+		db.executeQuery(sql);
+		
+		// drop temp table
+		sql = String.format("DROP TABLE [%s]", this.getSaveApplyModelTempTableName());
+		db.executeQuery(sql);
+	}
+	
+	protected String getSaveApplyModelTempTableName() {
+		//TODO: implement for real
+		return "temp_applyModel";
 	}
 }
