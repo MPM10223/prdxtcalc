@@ -1,16 +1,11 @@
 package algo.neuralnetwork;
 
-import static org.junit.Assert.*;
-
-import java.math.BigInteger;
 import java.util.Random;
 
 import junit.framework.Assert;
 
 
 import org.junit.Test;
-
-import algo.util.statistics.Combinatorics;
 
 public class DiscretizedNeuralNetworkGeneratorTest {
 

@@ -147,6 +147,25 @@ public class SQLDatabase extends Database {
 		
 		return results;
 	}
+	
+	public void dropTableIfExists(String tableName) {
+		dropObjectIfExists(tableName, "TABLE");
+	}
+	
+	public void dropViewIfExists(String viewName) {
+		dropObjectIfExists(viewName, "VIEW");
+	}
+	
+	protected void dropObjectIfExists(String objectName, String objectType) {
+		String sql = String.format("IF object_id('%s') IS NOT NULL BEGIN DROP %s [%s] END", objectType, objectType, objectName);
+		this.executeQuery(sql);
+	}
+	
+
+	public void renameObject(String oldName, String newName) {
+		String sql = String.format("sp_rename '%s', '%s'", oldName, newName);
+		this.executeQuery(sql);
+	}
 
 	@Override
 	protected String getDriverClassName() {
@@ -172,4 +191,5 @@ public class SQLDatabase extends Database {
 	public String getPassword() {
 		return password;
 	}
+
 }

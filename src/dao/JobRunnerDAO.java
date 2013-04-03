@@ -224,7 +224,7 @@ public class JobRunnerDAO {
 	}
 	
 	protected String getSaveApplyModelTempTableName() {
-		//TODO: implement for real
+		//TODO: deal with concurrency issues
 		return "temp_applyModel";
 	}
 }

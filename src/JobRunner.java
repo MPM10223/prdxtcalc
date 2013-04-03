@@ -139,7 +139,7 @@ public abstract class JobRunner {
 		try {
 			
 			Class<? extends Algorithm> c = (Class<? extends Algorithm>) Class.forName("algo." + algoClass);
-			a = c.newInstance();
+			a = c.newInstance(); // all Algorithms must support zero argument constructors
 			
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
@@ -159,7 +159,7 @@ public abstract class JobRunner {
 		
 		try {
 			Class<? extends PredictiveModel> c = (Class<? extends PredictiveModel>) Class.forName("algo." + modelClass);
-			m = c.newInstance();
+			m = c.newInstance(); // all PredictiveModels must support zero argument constructors...
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
 		} catch (InstantiationException e) {
@@ -168,7 +168,7 @@ public abstract class JobRunner {
 			throw new RuntimeException(e);
 		}
 		
-		m.fromDB(dao.getDB(), modelID);
+		m.fromDB(dao.getDB(), modelID); // ...followed by a fromDB call
 		
 		return m;
 	}

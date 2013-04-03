@@ -27,13 +27,18 @@ public class AlgorithmDAO extends ModelTrainingDataDAO {
 		return b.toString();
 	}
 	
-	public String getSourceDataQuery() {
+	public String getSourceDataQuery(boolean includeIVs) {
 		return String.format("SELECT %s FROM [%s] WHERE [%s] IS NOT NULL AND %s ORDER BY [%s]"
-				, this.getColumnList(",", "[", "]", true, true)
+				, includeIVs ? this.getColumnList(",", "[", "]", true, true) : String.format("[%s], [%s]", this.getIdColumn(), this.getDvColumn())
 				, this.getDataTable()
 				, this.getDvColumn()
 				, this.getSQLPredicate()
 				, this.getIdColumn()
 				);
+	}
+	
+	public String getSourceDataDepivotQuery(boolean includeDV) {
+		//TODO: implement
+		return "";
 	}
 }
