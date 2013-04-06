@@ -97,7 +97,7 @@ public abstract class JobRunner {
 			}
 		}
 		
-		// TODO, put this in a loop
+		// TODO: put this in a loop
 	}
 
 	protected static void buildModel(int problemID, int algorithmID) {
@@ -122,11 +122,8 @@ public abstract class JobRunner {
 	protected static void applyModel(int modelID, int applyModelRunID) {
 
 		PredictiveModel m = getModelFromID(modelID);
-		Vector<Observation> targets = dao.getApplyModelTargets(applyModelRunID);
-		for(Observation target : targets) {
-			double prediction = m.predict(target.getIndependentVariables());
-			target.setPrediction(prediction);
-		}
+		Observation[] targets = dao.getApplyModelTargets(applyModelRunID);
+		m.predict(targets);
 		dao.saveApplyModelResults(targets);
 		
 	}

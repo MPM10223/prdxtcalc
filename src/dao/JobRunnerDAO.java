@@ -162,7 +162,7 @@ public class JobRunnerDAO {
 		db.executeQuery(sql);
 	}
 
-	public Vector<Observation> getApplyModelTargets(int applyModelRunID) {
+	public Observation[] getApplyModelTargets(int applyModelRunID) {
 		
 		Vector<Observation> targets = new Vector<Observation>();
 		
@@ -195,20 +195,19 @@ public class JobRunnerDAO {
 			targets.add(new Observation(String.valueOf(targetID), inputs, null));
 		}
 		
-		return targets;
+		return targets.toArray(new Observation[] {});
 	}
 
-	public void saveApplyModelResults(Vector<Observation> targets) {
+	public void saveApplyModelResults(Observation[] targets) {
 		// create temp table
-		String sql = String.format("IF object_id('%s') IS NOT NULL DROP TABLE [%s]", this.getSaveApplyModelTempTableName(), this.getSaveApplyModelTempTableName());
-		db.executeQuery(sql);
+		db.dropTableIfExists(this.getSaveApplyModelTempTableName());
 		
-		sql = String.format("CREATE TABLE [%s] ( applyModelTargetID int not null, prediction float not null, PRIMARY KEY (applyModelTargetID) )", this.getSaveApplyModelTempTableName());
+		String sql = String.format("CREATE TABLE [%s] ( applyModelTargetID int not null, prediction float not null, PRIMARY KEY (applyModelTargetID) )", this.getSaveApplyModelTempTableName());
 		db.executeQuery(sql);
 		
 		// insert into temp table
 		SQLInsertBuffer b = new SQLInsertBuffer(this.db, this.getSaveApplyModelTempTableName(), new String[] {"applyModelTargetID", "prediction"} );
-		b.startBufferedInsert(targets.size());
+		b.startBufferedInsert(targets.length);
 		for(Observation o : targets) {
 			b.insertRow(new String[] {o.getIdentifier(), String.valueOf(o.getPrediction())} );
 		}
@@ -219,8 +218,7 @@ public class JobRunnerDAO {
 		db.executeQuery(sql);
 		
 		// drop temp table
-		sql = String.format("DROP TABLE [%s]", this.getSaveApplyModelTempTableName());
-		db.executeQuery(sql);
+		db.dropTableIfExists(this.getSaveApplyModelTempTableName());
 	}
 	
 	protected String getSaveApplyModelTempTableName() {

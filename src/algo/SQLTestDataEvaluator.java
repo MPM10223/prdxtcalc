@@ -13,23 +13,25 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 	
 	protected SQLDatabase db;
 	protected String tableName;
+	protected String idColumn;
 	protected String[] ivColumns;
 	protected int[] ivFeatureIDs;
 	protected String dvColumn;
 	protected String predicate;
 	protected String detailColumn;
 	
-	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, EvaluationType t) {
-		this(db, tableName, ivColumns, ivFeatureIDs, dvColumn, predicate, null, t);
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String idColumn, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, EvaluationType t) {
+		this(db, tableName, idColumn, ivColumns, ivFeatureIDs, dvColumn, predicate, null, t);
 	}
 
-	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
+	public SQLTestDataEvaluator(SQLDatabase db, String tableName, String idColumn, String[] ivColumns, int[] ivFeatureIDs, String dvColumn, String predicate, String detailColumn, EvaluationType t) {
 		super();
 		this.db = db;
 		this.tableName = tableName;
 		
 		if(ivColumns.length != ivFeatureIDs.length) throw new RuntimeException();
 		
+		this.idColumn = idColumn;
 		this.ivColumns = ivColumns;
 		this.ivFeatureIDs = ivFeatureIDs;
 		this.dvColumn = dvColumn;
@@ -44,6 +46,11 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 		for(int i = 0; i < results.size(); i++) {
 			
 			Map<String,String> row = results.get(i);
+			
+			String id = null;
+			if(this.idColumn != null) {
+				id = row.get(this.idColumn);
+			}
 			
 			Map<Integer,Double> ivs = new HashMap<Integer,Double>(ivColumns.length);
 			
@@ -72,7 +79,7 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 				detail = row.get(this.detailColumn);
 			}
 			
-			data[i] = new Observation(ivs, dv, detail);
+			data[i] = new Observation(id, ivs, dv, detail);
 		}
 		
 		switch(t) {
@@ -100,12 +107,20 @@ public class SQLTestDataEvaluator<T extends PredictiveModel> implements IFitness
 			b.append(String.format("[%s]", column));
 		}
 		//TODO: support missing DV data in query
-		return String.format("SELECT %s, [%s] %s FROM [%s] WHERE 1=1 AND [%s] IS NOT NULL %s", b.toString(), this.dvColumn, (this.detailColumn == null ? "" : ", " + this.detailColumn), this.tableName, this.dvColumn, (this.predicate == null ? "" : " AND " + this.predicate));
+		return String.format("SELECT %s %s, [%s] %s FROM [%s] WHERE 1=1 AND [%s] IS NOT NULL %s"
+				, this.idColumn == null ? "" : this.idColumn + ", "
+				, b.toString()
+				, this.dvColumn
+				, (this.detailColumn == null ? "" : ", " + this.detailColumn)
+				, this.tableName
+				, this.dvColumn
+				, (this.predicate == null ? "" : " AND " + this.predicate)
+			);
 	}
 
 	@Override
 	public double evaluate(PredictiveModel subject) {
-		return e.evaluate(subject);
+		return e.evaluate(subject, subject.getPrefersBatchPrediction());
 	}
 
 	@Override

@@ -163,4 +163,9 @@ public class NeuralNetwork extends PredictiveModel {
 		// TODO assign modelTypeID
 		return -1;
 	}
+
+	@Override
+	public boolean getPrefersBatchPrediction() {
+		return false;
+	}
 }

@@ -14,17 +14,37 @@ public class TestDataEvaluator implements IFitnessFunction<PredictiveModel> {
 	
 	@Override
 	public double evaluate(PredictiveModel subject) {
+		return this.evaluate(subject, false);
+	}
+	
+	public double evaluate(PredictiveModel subject, boolean inBatch) {
+
+		if(inBatch) {
+			this.predictInBatch(subject);
+		} else {
+			this.predictIndividually(subject);
+		}
+		
 		double score = 0;
+		for(int i = 0; i < testData.length; i++) {
+			Observation o = testData[i];
+			if(this.isPredictionCorrect(o.getPrediction(), o.getDependentVariable())) {
+				score++;
+			}
+		}
+		return score / (double)testData.length;		
+	}
+	
+	private void predictIndividually(PredictiveModel subject) {
 		for(int i = 0; i < testData.length; i++) {
 			Observation o = testData[i];
 			double prediction = subject.predict(o.getIndependentVariables());
 			o.setPrediction(prediction);
-			
-			if(this.isPredictionCorrect(prediction, o.getDependentVariable())) {
-				score++;
-			}
 		}
-		return score / (double)testData.length;
+	}
+	
+	private void predictInBatch(PredictiveModel subject) {
+		this.testData = subject.predict(this.testData);
 	}
 
 	@Override
@@ -88,5 +108,4 @@ public class TestDataEvaluator implements IFitnessFunction<PredictiveModel> {
 		}
 		return details;
 	}
-
 }

@@ -241,4 +241,9 @@ public class DiscretizedNeuralNetwork extends PredictiveModel implements IGeneti
 	public int getModelTypeID() {
 		return 1; //TODO: make this cleaner, e.g. use an enum
 	}
+
+	@Override
+	public boolean getPrefersBatchPrediction() {
+		return false;
+	}
 }

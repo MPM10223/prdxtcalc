@@ -1,5 +1,6 @@
 package algo.knn;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
@@ -45,7 +46,7 @@ public class KNNModelDAO {
 		this.featuresTable = featuresTable;
 	}
 	
-	private String findNearestNeighbors(int modelID, Map<Integer, Double> targetIVs) {
+	private String findNearestNeighbors(Map<Integer,Map<Integer, Double>> targets) {
 		// 1. create target table for join
 		String targetTable = this.getTargetTempTableName();
 		db.dropTableIfExists(targetTable);
@@ -55,16 +56,22 @@ public class KNNModelDAO {
 		// 2. fill target table
 		SQLInsertBuffer b = new SQLInsertBuffer(db, targetTable, new String[] {"targetID","featureID","value"});
 		
-		b.startBufferedInsert(targetIVs.size());
-		for(Integer featureID : targetIVs.keySet()) {
-			Double rawValue = targetIVs.get(featureID);
-			b.insertRow(new String[] { "1", String.valueOf(featureID), String.valueOf(rawValue) });
+		int numTargets = targets.size();
+		int numFeatures = 10; //TODO: grab this from the targets map inexpensively
+		
+		b.startBufferedInsert(numTargets * numFeatures);
+		for(Integer targetID : targets.keySet()) {
+			Map<Integer,Double> ivs = targets.get(targetID);
+			for(Integer featureID : ivs.keySet()) {
+				Double rawValue = ivs.get(featureID);
+				b.insertRow(new String[] { String.valueOf(targetID), String.valueOf(featureID), String.valueOf(rawValue) });
+			}
 		}
 		
 		b.finishBufferedInsert();
 		
 		// 3. create neighborRank table
-		String targetNeighborTable = this.getTargetNeighborTableName(modelID);
+		String targetNeighborTable = this.getTargetNeighborTableName();
 		String distanceExpression = String.format("sqrt(SUM( power(((n.value - f.mu) / f.sigma) - ((t.value - f.mu) / f.sigma), 2) ))");
 		//TODO: support more nuanced handling of ties
 		db.dropTableIfExists(targetNeighborTable);
@@ -73,17 +80,62 @@ public class KNNModelDAO {
 		
 		// 4. fill neighborRank table
 		sql = String.format("INSERT INTO [%s] (targetID, neighborID, distance, neighborRank) SELECT t.targetID, n.neighborID, %s as distance, rank() OVER (PARTITION BY t.targetID ORDER BY %s ASC) as neighborRank FROM [%s] n JOIN [%s] f ON n.featureID = f.featureID JOIN [%s] t ON n.featureID = t.featureID GROUP BY t.targetID, n.neighborID", targetNeighborTable, distanceExpression, distanceExpression, neighborsTable, featuresTable, targetTable);
+		
+		int timeout = db.getQueryTimeout();
+		db.setQueryTimeout(0); // infinite
 		db.executeQuery(sql);
+		db.setQueryTimeout(timeout);
 		
 		return targetNeighborTable;
 	}
 	
-	public Vector<Map<String,String>> getKNearestNeighbors(int modelID, Map<Integer, Double> targetIVs, int k) {
-		//TODO: memoize this
-		String targetNeighborTable = this.findNearestNeighbors(modelID, targetIVs);
+	public Vector<Map<String,String>> getKNearestNeighbors(Map<Integer, Double> targetIVs, int k) {
+		Map<Integer,Map<Integer,Double>> targets = new HashMap<Integer, Map<Integer,Double>>(1);
+		targets.put(1, targetIVs);
+		Map<Integer,Vector<Map<String,String>>> neighbors = this.getKNearestNeighbors(targets, k);
+		return neighbors.get(1);
+	}
+	
+	public Map<Integer,Vector<Map<String,String>>> getKNearestNeighbors(Map<Integer,Map<Integer, Double>> targets, int k) {
+		String targetNeighborTable = this.findNearestNeighbors(targets);
 		
 		String sql = String.format("SELECT n.targetID, n.neighborID, d.dv FROM [%s] n JOIN [%s] d ON n.neighborID = d.neighborID WHERE n.neighborRank <= %d ORDER BY n.targetID, n.neighborID, d.dv", targetNeighborTable, dvTable, k);
-		return db.getQueryRows(sql);
+		Vector<Map<String,String>> results = db.getQueryRows(sql);
+		
+		Map<Integer,Vector<Map<String,String>>> neighbors = new HashMap<Integer, Vector<Map<String,String>>>(targets.size());
+		
+		Integer targetID = null;
+		Vector<Map<String,String>> targetNeighbors = null;
+		for(Map<String,String> row : results) {
+			int thisTargetID = Integer.parseInt(row.get("targetID"));
+			if(targetID == null || thisTargetID != targetID) {
+				// save results to this point
+				if(targetNeighbors != null) {
+					neighbors.put(targetID, targetNeighbors);
+				}
+				
+				// clear and begin again
+				targetNeighbors = new Vector<Map<String,String>>(k);
+				targetID = thisTargetID;
+			}
+			
+			targetNeighbors.add(row);
+		}
+		
+		// add the last set of neighbors
+		if(targetID != null) {
+			neighbors.put(targetID, targetNeighbors);
+		}
+		
+		// clean up algorithm temp tables
+		this.cleanUpTempTables();
+		
+		return neighbors;
+	}
+	
+	protected void cleanUpTempTables() {
+		db.dropTableIfExists(this.getTargetTempTableName());
+		db.dropTableIfExists(this.getTargetNeighborTableName());
 	}
 		
 	protected String getTargetTempTableName() {
@@ -91,9 +143,9 @@ public class KNNModelDAO {
 		return String.format("knn_targetFeatures");
 	}
 	
-	protected String getTargetNeighborTableName(int modelID) {
+	protected String getTargetNeighborTableName() {
 		//TODO: deal with concurrency
-		return String.format("knn_targetNeighbors_model%d", modelID);
+		return String.format("knn_targetNeighbors");
 	}
 
 	public void renameNeighborsTable(String newTableName) {

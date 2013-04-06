@@ -1,9 +1,11 @@
 package algo.knn;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
 import sqlWrappers.SQLDatabase;
+import algo.Observation;
 import algo.PredictiveModel;
 
 public class KNNModel extends PredictiveModel {
@@ -13,6 +15,20 @@ public class KNNModel extends PredictiveModel {
 	protected String neighborsTable;
 	protected String dvsTable;
 	protected String featuresTable;
+
+	public KNNModel() {
+		super();
+	}
+	
+	public KNNModel(int[] inputFeatures, SQLDatabase db, int k, String neighborsTable, String dvsTable, String featuresTable) {
+		super(inputFeatures);
+		this.k = k;
+		this.neighborsTable = neighborsTable;
+		this.dvsTable = dvsTable;
+		this.featuresTable = featuresTable;
+		
+		this.dao = new KNNModelDAO(db, this.getNeighborsTable(), this.getDvsTable(), this.getFeaturesTable());
+	}
 
 	public int getK() {
 		return k;
@@ -54,7 +70,32 @@ public class KNNModel extends PredictiveModel {
 	
 	@Override
 	public double predict(Map<Integer, Double> ivs) {
-		Vector<Map<String,String>> neighbors = dao.getKNearestNeighbors(modelID, ivs, k);
+		Vector<Map<String,String>> neighbors = dao.getKNearestNeighbors(ivs, k);
+		return this.predict(neighbors);
+	}
+
+	@Override
+	public Observation[] predict(Observation[] targets) {
+		Map<Integer, Map<Integer, Double>> targetIVs = new HashMap<Integer, Map<Integer,Double>>(targets.length);
+		Map<Integer, Observation> targetsMap = new HashMap<Integer, Observation>(targets.length);
+		for(Observation o : targets) {
+			int targetID = Integer.valueOf(o.getIdentifier());
+			targetsMap.put(targetID, o);
+			targetIVs.put(targetID, o.getIndependentVariables());
+		}
+		
+		Map<Integer,Vector<Map<String,String>>> targetNeighbors = dao.getKNearestNeighbors(targetIVs, this.k);
+		
+		for(int targetID : targetNeighbors.keySet()) {
+			Observation o = targetsMap.get(targetID);
+			double prediction = this.predict(targetNeighbors.get(targetID));
+			o.setPrediction(prediction);
+		}
+		
+		return targetsMap.values().toArray(new Observation[] {});
+	}
+	
+	protected double predict(Vector<Map<String, String>> neighbors) {
 		double prediction = 0.0;
 		for(Map<String,String> neighbor : neighbors) {
 			prediction += Double.parseDouble(neighbor.get("dv"));
@@ -124,5 +165,10 @@ public class KNNModel extends PredictiveModel {
 	
 	protected String getFeaturesTableName(int modelID) {
 		return String.format("knn_features_model%d", modelID);
+	}
+
+	@Override
+	public boolean getPrefersBatchPrediction() {
+		return true;
 	}
 }

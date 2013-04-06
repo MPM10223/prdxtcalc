@@ -27,8 +27,6 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 	
 	@Override
 	public KNNModel buildModel(AlgorithmDAO dao) {
-		KNNModel m = new KNNModel();
-		m.setK(this.k);
 		SQLDatabase db = dao.getDb();
 		
 		// 1. create neighbors table
@@ -39,7 +37,7 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		String sql = String.format("CREATE TABLE [%s] (neighborID int not null, featureID int not null, value float, CONSTRAINT PK__%s PRIMARY KEY (neighborID, featureID))", neighborTableName, neighborTableName);
 		db.executeQuery(sql);
 		sql = String.format("INSERT INTO [%s] (neighborID, featureID, value) %s", neighborTableName, dao.getSourceDataDepivotQuery(false));
-		m.setNeighborsTable(neighborTableName);
+		db.executeQuery(sql);
 		
 		// 2. create DVs table
 		//neighborID, dv
@@ -48,9 +46,8 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		db.dropTableIfExists(dvTableName);
 		sql = String.format("CREATE TABLE [%s] (neighborID int not null, dv float, CONSTRAINT PK__%s PRIMARY KEY (neighborID))", dvTableName, dvTableName);
 		db.executeQuery(sql);
-		sql = String.format("INSERT INTO [%s] (neighborID, dv) %s", dvTableName, dao.getSourceDataQuery(false));
+		sql = String.format("INSERT INTO [%s] (neighborID, dv) %s", dvTableName, dao.getSourceDataQuery(false, true));
 		db.executeQuery(sql);
-		m.setDvsTable(dvTableName);
 		
 		// 3. create features table
 		//featureID, mu, sigma
@@ -61,9 +58,8 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		db.executeQuery(sql);
 		sql = String.format("INSERT INTO [%s] (featureID, mu, sigma) SELECT featureID, AVG(value), STDEV(value) FROM [%s] GROUP BY featureID", featuresTableName, neighborTableName);
 		db.executeQuery(sql);
-		m.setFeaturesTable(featuresTableName);
 		
-		return m;
+		return new KNNModel(dao.getIvFeatureIDs(), db, this.k, neighborTableName, dvTableName, featuresTableName);
 	}
 	
 	protected String getNeighborTableName() {

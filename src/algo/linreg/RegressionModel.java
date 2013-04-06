@@ -90,4 +90,9 @@ public class RegressionModel extends PredictiveModel {
 			}
 		}
 	}
+
+	@Override
+	public boolean getPrefersBatchPrediction() {
+		return false;
+	}
 }

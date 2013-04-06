@@ -47,7 +47,7 @@ public class ForwardStepwiseRegression extends Algorithm<RegressionModel> {
 		r.addRCode(String.format("conn <- odbcDriverConnect('%s')", connString));
 		
 		// Load problem data
-		r.addRCode(String.format("pd <- sqlQuery(conn, '%s')", dao.getSourceDataQuery(true)));
+		r.addRCode(String.format("pd <- sqlQuery(conn, '%s')", dao.getSourceDataQuery(true, true)));
 		
 		// Find best single-variable correlation as starting point
 		// cor(pd[,c("Stochastic %K","Stochastic %D","Stochastic slow %D","Momentum","Rate of Change","LW %R", "A/D Oscillator","Disparity 5d","Disparity 10d","OSCP","CCI","RSI","DV")], use="complete.obs")["DV",]

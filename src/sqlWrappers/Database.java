@@ -12,7 +12,7 @@ public abstract class Database {
 	protected abstract String getDriverClassName();
 	
 	public static String getAzureODBCConnectionString(String server, String port, String db, String uid, String pwd, boolean encrypt) {
-		//Driver={SQL Server Native Client 10.0};Server=tcp:hwvhpv4cb1.database.windows.net,1433;Database=prdxt;Uid=mmonteiro@hwvhpv4cb1;Pwd=HVD2006a;Encrypt=yes;
+		//Driver={SQL Server Native Client 10.0};Server=tcp:hwvhpv4cb1.database.windows.net,1433;Database=prdxt;Uid=xxxxx@hwvhpv4cb1;Pwd=xxxxx;Encrypt=yes;
 		return String.format("Driver={%s};Server=tcp:%s,%s;Database=%s;Uid=%s;Pwd=%s;Encrypt=%s;"
 				, "SQL Server Native Client 10.0"
 				, server

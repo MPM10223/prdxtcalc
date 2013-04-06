@@ -25,6 +25,7 @@ public abstract class PredictiveModel {
 	
 	// ABSTRACT METHODS
 	public abstract int getModelTypeID();
+	public abstract boolean getPrefersBatchPrediction();
 	protected abstract double predict(double[] indexedInputs);
 	
 	// PUBLIC METHODS
@@ -33,9 +34,16 @@ public abstract class PredictiveModel {
 		return this.predict(indexedInputs);
 	}
 	
+	public Observation[] predict(Observation[] targets) {
+		for(Observation t : targets) {
+			t.setPrediction(this.predict(t.getIndependentVariables()));
+		}
+		return targets;
+	}
+	
 	public int toDB(SQLDatabase db, int problemID, int algoID) {
 		// models table
-		String sql = String.format("INSERT INTO models (modelTypeID, problemID, algoID) SELECT %d, %d, %d GO SELECT scope_identity() as modelID", this.getModelTypeID(), problemID, algoID);
+		String sql = String.format("INSERT INTO models (modelTypeID, problemID, algoID) SELECT %d, %d, %d%nSELECT scope_identity() as modelID", this.getModelTypeID(), problemID, algoID);
 		Vector<Vector<Map<String,String>>> results = db.getQueryBatchResults(sql);
 		String modelID = results.lastElement().firstElement().get("modelID");
 		this.modelID = Integer.parseInt(modelID);

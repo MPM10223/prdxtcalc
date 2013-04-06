@@ -48,6 +48,7 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 			SQLTestDataEvaluator<PredictiveModel> e = new SQLTestDataEvaluator<PredictiveModel>(
 					dao.getDb()
 					, dao.getFoldTable() // evaluation pool
+					, dao.getIdColumn()
 					, dao.getIvColumns()
 					, dao.getIvFeatureIDs()
 					, dao.getDvColumn()

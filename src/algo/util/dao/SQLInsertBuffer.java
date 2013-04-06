@@ -22,7 +22,7 @@ public class SQLInsertBuffer {
 	}
 	
 	public void startBufferedInsert(int numRows) {
-		this.buffer = new Vector<String[]>(numRows);
+		this.buffer = new Vector<String[]>(numRows > MAX_BUFFER_SIZE ? MAX_BUFFER_SIZE : numRows);
 	}
 	
 	public int finishBufferedInsert() {
@@ -55,6 +55,8 @@ public class SQLInsertBuffer {
 		int numRows = buffer.size();
 		
 		db.executeQuery(b.toString());
+		
+		buffer.clear();
 		
 		return numRows;
 	}

@@ -16,6 +16,8 @@ public class SQLDatabase extends Database {
 	protected String userName;
 	protected String password;
 	
+	protected int queryTimeout;
+	
 	protected static final String DriverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver"; 
 
 	public SQLDatabase(String server, String port, String database, String userName, String password) {
@@ -25,6 +27,18 @@ public class SQLDatabase extends Database {
 		this.database = database;
 		this.userName = userName;
 		this.password = password;
+		
+		this.queryTimeout = 0;
+		
+		this.establishConnection();
+	}
+	
+	public int getQueryTimeout() {
+		return queryTimeout;
+	}
+
+	public void setQueryTimeout(int queryTimeout) {
+		this.queryTimeout = queryTimeout;
 	}
 	
 	public String getConnectionString() {
@@ -34,7 +48,7 @@ public class SQLDatabase extends Database {
 	}
 	
 	public void executeQuery(String sql) {
-		this.getQueryRows(sql, false);
+		this.getQueryRows(sql);
 	}
 	
 	public String getQueryResult(String sql) {
@@ -52,20 +66,21 @@ public class SQLDatabase extends Database {
 	}
 	
 	public Vector<Map<String,String>> getQueryRows(String sql) {
-		return getQueryRows(sql, true);
+		Vector<Vector<Map<String,String>>> results = this.getQueryBatchResults(sql);
+		if(results.size() == 0) throw new RuntimeException("Specified query did not return any results: " + sql);
+		if(results.size() > 1) throw new RuntimeException("Specified query returned more than 1 result: " + sql);
+		return results.firstElement();
 	}
 	
 	public Vector<Vector<Map<String,String>>> getQueryBatchResults(String sqlBatch) {
 		
-		System.out.println(sqlBatch);
+		//System.out.println(sqlBatch);
 		
 		Vector<Vector<Map<String,String>>> results = null;
 		
 		try {
-			establishConnection();
-			
-			Statement s = c.createStatement();
-			s.execute(sqlBatch);
+			Statement s = this.initiateStatement();
+			s = this.executeSQLInStatement(s, sqlBatch);
 			
 			results = new Vector<Vector<Map<String,String>>>();
 			
@@ -99,53 +114,30 @@ public class SQLDatabase extends Database {
 			
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		} finally {
-			closeConnection();
 		}
 		
 		return results;
 	}
 	
-	protected Vector<Map<String,String>> getQueryRows(String sql, boolean expectResults) {
-
-		System.out.println(sql);
-		
-		Vector<Map<String,String>> results = null;
-		
+	protected Statement initiateStatement() {
+		Statement s = null;
 		try {
-			establishConnection();
-			
-			Statement s = c.createStatement();
-			
-			if(expectResults) {
-				ResultSet rs = s.executeQuery(sql);
-			
-				ResultSetMetaData d = rs.getMetaData();
-				
-				results = new Vector<Map<String,String>>(rs.getFetchSize());
-				
-				while(rs.next()) {
-					HashMap<String,String> row = new HashMap<String,String>(d.getColumnCount()); 
-					for(int i = 0; i < d.getColumnCount(); i++) {
-						String columnName = d.getColumnName(i + 1);
-						row.put(columnName, rs.getString(columnName));
-					}
-					results.add(row);
-				}
-				
-				rs.close();
-			} else {
-				s.execute(sql);
-			}
-			s.close();
-			
+			s = c.createStatement();
+			s.setQueryTimeout(this.queryTimeout);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
-		} finally {
-			closeConnection();
 		}
-		
-		return results;
+		return s;
+	}
+	
+	protected Statement executeSQLInStatement(Statement s, String sql) {
+		Statement statement = s;
+		try {
+			statement.execute(sql);
+		} catch (SQLException e) {
+			throw new RuntimeException(e);
+		}
+		return statement;
 	}
 	
 	public void dropTableIfExists(String tableName) {
@@ -157,7 +149,7 @@ public class SQLDatabase extends Database {
 	}
 	
 	protected void dropObjectIfExists(String objectName, String objectType) {
-		String sql = String.format("IF object_id('%s') IS NOT NULL BEGIN DROP %s [%s] END", objectType, objectType, objectName);
+		String sql = String.format("IF object_id('%s') IS NOT NULL BEGIN DROP %s [%s] END", objectName, objectType, objectName);
 		this.executeQuery(sql);
 	}
 	
