@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.util.HashMap;
 import java.util.Random;
 
+import algo.util.dao.ILog;
 import algo.util.statistics.Combinatorics;
 
 public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TOrganism> {
@@ -18,9 +19,9 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 	
 	protected Class<TOrganism> ct;
 
-	public GeneticSearch(IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int numOrganisms,
+	public GeneticSearch(ILog log, IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int numOrganisms,
 			int maxTrials, double minMutationRate, double maxMutationRate, double minCrossoverRate, double maxCrossoverRate, Class<TOrganism> ct) {
-		super(generator, fitness);
+		super(log, generator, fitness);
 		this.numOrganisms = numOrganisms;
 		this.maxTrials = maxTrials;
 		this.minMutationRate = minMutationRate;
@@ -59,6 +60,8 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 			population[i] = generator.generate(dna);
 		}
 		
+		log.logStepSequenceStarted(this.maxTrials);
+		
 		int trial = 0;
 		while(trial < this.maxTrials) {
 			
@@ -75,7 +78,7 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 				selectionLikelihood.put(o, Math.pow(f, 2));
 				
 				if(f > best) {
-					System.out.println(String.format("Trial %d - New Champion @ Fitness: %f", trial+1, f));
+					log.logMessage(String.format("Trial %d - New Champion @ Fitness: %f", trial+1, f));
 					winner = o;
 					best = f;
 				}
@@ -116,8 +119,12 @@ public class GeneticSearch<TOrganism extends IGeneticOrganism> extends Search<TO
 			
 			population = nextGeneration;
 			
+			log.logStepCompleted();
+			
 			trial++;
 		}
+		
+		log.logStepSequenceCompleted();
 		
 		return winner;
 	}

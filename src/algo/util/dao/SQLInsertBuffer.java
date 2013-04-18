@@ -39,24 +39,27 @@ public class SQLInsertBuffer {
 	}
 	
 	public int flush() {
-		String columnList = Arrays.toString(this.columns);
-		columnList = columnList.substring(1, columnList.length() - 1);
-		StringBuilder b = new StringBuilder(String.format("INSERT INTO [%s] (%s) ", this.tableName, columnList));
-		
-		boolean first = true;
-		for(String[] values : this.buffer) {
-			if(first) first = false;
-			else b.append(" UNION ALL ");
-			String valueList = Arrays.toString(values);
-			valueList = valueList.substring(1, valueList.length() - 1);
-			b.append(String.format("SELECT %s", valueList));
-		}
-		
 		int numRows = buffer.size();
 		
-		db.executeQuery(b.toString());
+		if(buffer.size() > 0) {
 		
-		buffer.clear();
+			String columnList = Arrays.toString(this.columns);
+			columnList = columnList.substring(1, columnList.length() - 1);
+			StringBuilder b = new StringBuilder(String.format("INSERT INTO [%s] (%s) ", this.tableName, columnList));
+			
+			boolean first = true;
+			for(String[] values : this.buffer) {
+				if(first) first = false;
+				else b.append(" UNION ALL ");
+				String valueList = Arrays.toString(values);
+				valueList = valueList.substring(1, valueList.length() - 1);
+				b.append(String.format("SELECT %s", valueList));
+			}
+			
+			db.executeQuery(b.toString());
+			
+			buffer.clear();
+		}
 		
 		return numRows;
 	}

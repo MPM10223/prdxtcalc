@@ -15,6 +15,7 @@ public class KNNModel extends PredictiveModel {
 	protected String neighborsTable;
 	protected String dvsTable;
 	protected String featuresTable;
+	//TODO: add feature weights
 
 	public KNNModel() {
 		super();

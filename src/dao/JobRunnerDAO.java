@@ -17,13 +17,15 @@ public class JobRunnerDAO {
 	protected String jobQtable;
 	protected Integer calcServerID;
 	
+	protected float progress = 0;
+	
 	public JobRunnerDAO(String server, String port, String database, String jobQTable, String username, String password) {
 		this.db = new SQLDatabase(server, port, database, username, password);
 		this.jobQtable = jobQTable;
 		this.calcServerID = null;
 	}
 	
-	protected int getCalcServerID() {
+	public int getCalcServerID() {
 		if(calcServerID == null) {
 			String serverName;
 			try {
@@ -130,38 +132,6 @@ public class JobRunnerDAO {
 		db.executeQuery(sql);
 	}
 
-	public void logJobStarted(int jobID) {
-		logJobStatusChange(jobID, 0, 1);
-	}
-
-	public void logJobCompleted(int jobID) {
-		logJobStatusChange(jobID, 1, 2);
-	}
-	
-	public void logJobFailed(int jobID, Exception e) {
-		logJobStatusChange(jobID, 1, 3);
-	}
-	
-	protected void logJobStatusChange(int jobID, int oldStatus, int newStatus) {
-		String sql = String.format("SELECT jobID FROM [%s] WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, jobID, this.getCalcServerID(), oldStatus);
-		Vector<Map<String,String>> results = db.getQueryRows(sql);
-		
-		if(results.size() == 0) throw new RuntimeException("Invalid jobID / status combination - no matching job/state found");
-		
-		String dateStampColumn = null;
-		if(oldStatus == 0 && newStatus == 1) dateStampColumn = "startTime";
-		if(oldStatus == 1 && newStatus == 2) dateStampColumn = "endTime";
-		if(oldStatus == 1 && newStatus == 3) dateStampColumn = "endTime";
-		
-		String dateStampSQL = "";
-		if(dateStampColumn != null) {
-			dateStampSQL = String.format(", [%s] = getDate()", dateStampColumn);
-		}
-
-		sql = String.format("UPDATE [%s] SET jobStatus = %d %s WHERE jobID = %d AND calcServerID = %d AND jobStatus = %d", this.jobQtable, newStatus, dateStampSQL, jobID, this.getCalcServerID(), oldStatus);
-		db.executeQuery(sql);
-	}
-
 	public Observation[] getApplyModelTargets(int applyModelRunID) {
 		
 		Vector<Observation> targets = new Vector<Observation>();
@@ -219,6 +189,16 @@ public class JobRunnerDAO {
 		
 		// drop temp table
 		db.dropTableIfExists(this.getSaveApplyModelTempTableName());
+	}
+	
+	public void requestModelEvaluation(int problemID, int algorithmID, int modelID) {
+		String sql = String.format("INSERT INTO [%s] (jobTypeID, args) SELECT 2, '%d %d %d'", this.jobQtable, problemID, algorithmID, modelID);
+		db.executeQuery(sql);
+	}
+	
+	public void recordJobReturnValue(int jobID, String returnValue) {
+		String sql = String.format("UPDATE [%s] SET returnVal = '%s' WHERE jobID = %d", this.jobQtable, returnValue, jobID);
+		db.executeQuery(sql);
 	}
 	
 	protected String getSaveApplyModelTempTableName() {

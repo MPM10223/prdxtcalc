@@ -2,22 +2,24 @@ package algo.util.search;
 
 import java.util.Random;
 
+import algo.util.dao.ILog;
+
 public class RepeatedRandom<TOrganism> extends Search<TOrganism> {
 	
 	protected int iterationLimit;
 	
-	public RepeatedRandom(IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit) {
-		super(generator, fitness);
+	public RepeatedRandom(ILog log, IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit) {
+		super(log, generator, fitness);
 		this.iterationLimit = iterationLimit;
 	}
 	
-	public RepeatedRandom(IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit, int seed) {
-		super(generator, fitness, seed);
+	public RepeatedRandom(ILog log, IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit, int seed) {
+		super(log, generator, fitness, seed);
 		this.iterationLimit = iterationLimit;
 	}
 	
-	public RepeatedRandom(IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit, Random r) {
-		super(generator, fitness, r);
+	public RepeatedRandom(ILog log, IOrganismGenerator<TOrganism> generator, IFitnessFunction<TOrganism> fitness, int iterationLimit, Random r) {
+		super(log, generator, fitness, r);
 		this.iterationLimit = iterationLimit;
 	}
 	
@@ -30,6 +32,8 @@ public class RepeatedRandom<TOrganism> extends Search<TOrganism> {
 		double best = Double.NEGATIVE_INFINITY;
 		TOrganism winner = null;
 		
+		log.logStepSequenceStarted(iterationLimit);
+		
 		for(int i = 0; i < iterationLimit; i++) {
 			
 			byte[] dna = new byte[this.generator.getDNASize()];
@@ -41,11 +45,15 @@ public class RepeatedRandom<TOrganism> extends Search<TOrganism> {
 			//System.out.println(String.format("Iteration %d - Fitness: %f, Champion: %f", i+1, fitness, best));
 			
 			if(fitness > best) {
-				System.out.println(String.format("Iteration %d - New Champion @ Fitness: %f", i+1, fitness));
+				log.logMessage(String.format("Iteration %d - New Champion @ Fitness: %f", i+1, fitness));
 				winner = organism;
 				best = fitness;
 			}
+			
+			log.logStepCompleted();
 		}
+		
+		log.logStepSequenceCompleted();
 		
 		return winner;
 	}

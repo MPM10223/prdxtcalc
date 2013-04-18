@@ -6,6 +6,7 @@ import algo.AlgorithmDAO;
 import algo.CrossValidationEvaluator;
 import algo.Observation;
 import algo.PredictiveModel;
+import algo.util.dao.ILog;
 
 import dao.JobRunnerDAO;
 import dao.ProblemDefinition;
@@ -40,6 +41,7 @@ public abstract class JobRunner {
 		
 		if(pop != null) {
 			int jobID = Integer.parseInt(pop.get("jobID"));
+			JobLog l = new JobLog(dao.getDB(), jobQtable, dao.getCalcServerID(), jobID);
 			
 			try {
 				
@@ -48,7 +50,8 @@ public abstract class JobRunner {
 				
 				String[] jobArgs = pop.get("args").split(" ");
 				
-				dao.logJobStarted(jobID);
+				l.logJobStarted();
+				l.initJobProgress();
 				
 				switch(jobType) {
 				case BUILD_MODEL:
@@ -58,7 +61,9 @@ public abstract class JobRunner {
 					int problemID = Integer.parseInt(jobArgs[0]);
 					int algorithmID = Integer.parseInt(jobArgs[1]);
 					
-					buildModel(problemID, algorithmID);
+					int modelID = buildModel(problemID, algorithmID, l);
+					
+					dao.recordJobReturnValue(jobID, String.valueOf(modelID));
 					
 					break;
 									
@@ -68,9 +73,11 @@ public abstract class JobRunner {
 					if(jobArgs.length != 3) throw new RuntimeException();
 					problemID = Integer.parseInt(jobArgs[0]);
 					algorithmID = Integer.parseInt(jobArgs[1]);
-					int modelID = Integer.parseInt(jobArgs[2]);
+					modelID = Integer.parseInt(jobArgs[2]);
 					
-					evaluateAlgorithm(problemID, algorithmID, modelID);
+					double accuracy = evaluateAlgorithm(problemID, algorithmID, modelID, l);
+					
+					dao.recordJobReturnValue(jobID, String.valueOf(accuracy));
 					
 					break;
 					
@@ -81,7 +88,11 @@ public abstract class JobRunner {
 					modelID = Integer.parseInt(jobArgs[0]);
 					int applyModelRunID = Integer.parseInt(jobArgs[1]);
 					
-					applyModel(modelID, applyModelRunID);
+					Double prediction = applyModel(modelID, applyModelRunID, l);
+					
+					if(prediction != null) {
+						dao.recordJobReturnValue(jobID, String.valueOf(prediction));
+					}
 					
 					break;
 					
@@ -89,10 +100,10 @@ public abstract class JobRunner {
 					throw new RuntimeException(String.format("Unsupported jobTypeID: %d", jobTypeID));
 				}
 				
-				dao.logJobCompleted(jobID);
+				l.logJobCompleted();
 		
 			} catch(Exception e) {
-				//dao.logJobFailed(jobID, e);
+				//l.logJobFailed(e);
 				throw new RuntimeException(e);
 			}
 		}
@@ -100,31 +111,43 @@ public abstract class JobRunner {
 		// TODO: put this in a loop
 	}
 
-	protected static void buildModel(int problemID, int algorithmID) {
+	protected static int buildModel(int problemID, int algorithmID, ILog log) {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
+		a.setLog(log);
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
 		PredictiveModel m = a.buildModel(new AlgorithmDAO(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getIvFeatureIDs(), problemData.getDvColumn(), problemData.getIdColumn(), null));
-		m.toDB(dao.getDB(), problemID, algorithmID);
+		int modelID = m.toDB(dao.getDB(), problemID, algorithmID);
+		dao.requestModelEvaluation(problemID, algorithmID, modelID);
+		
+		return modelID;
+		
 	}
 	
-	protected static void evaluateAlgorithm(int problemID, int algorithmID, int modelID) {
+	protected static double evaluateAlgorithm(int problemID, int algorithmID, int modelID, ILog log) {
 		
-		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);	
+		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);
+		a.setLog(log);
 		ProblemDefinition problemData = dao.getProblemDataSource(problemID);
-		CrossValidationEvaluator e = new CrossValidationEvaluator(dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getIvFeatureIDs(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
+		CrossValidationEvaluator e = new CrossValidationEvaluator(log, dao.getDB(), problemData.getTable(), problemData.getIvColumns(), problemData.getIvFeatureIDs(), problemData.getDvColumn(), problemData.getIdColumn(), 5, problemID, algorithmID, modelID);
 		double cvr2 = e.evaluate(a);
 		// this measure of accuracy is drawn from the generating algorithm, but ultimately linked to the model
 		dao.recordModelAccuracy(modelID, cvr2);
 		
+		return cvr2;
+		
 	}
 	
-	protected static void applyModel(int modelID, int applyModelRunID) {
+	protected static Double applyModel(int modelID, int applyModelRunID, ILog log) {
 
 		PredictiveModel m = getModelFromID(modelID);
+		m.setLog(log);
 		Observation[] targets = dao.getApplyModelTargets(applyModelRunID);
 		m.predict(targets);
 		dao.saveApplyModelResults(targets);
+		
+		if(targets.length == 1) return targets[0].getPrediction();
+		return null;
 		
 	}
 	

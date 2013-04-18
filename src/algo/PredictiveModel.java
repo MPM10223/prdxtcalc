@@ -3,6 +3,7 @@ package algo;
 import java.util.Map;
 import java.util.Vector;
 
+import algo.util.dao.ILog;
 import algo.util.dao.SQLInsertBuffer;
 
 import sqlWrappers.SQLDatabase;
@@ -10,6 +11,7 @@ import sqlWrappers.SQLDatabase;
 public abstract class PredictiveModel {
 	
 	// PROTECTED MEMBERS
+	protected ILog log;
 	protected Integer modelID;
 	protected int[] inputFeatures;
 	
@@ -23,6 +25,15 @@ public abstract class PredictiveModel {
 		this.inputFeatures = inputFeatures;
 	}
 	
+	// GETTERS / SETTERS
+	public ILog getLog() {
+		return log;
+	}
+
+	public void setLog(ILog log) {
+		this.log = log;
+	}
+
 	// ABSTRACT METHODS
 	public abstract int getModelTypeID();
 	public abstract boolean getPrefersBatchPrediction();

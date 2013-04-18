@@ -20,6 +20,10 @@ public class SQLDatabase extends Database {
 	
 	protected static final String DriverClassName = "com.microsoft.sqlserver.jdbc.SQLServerDriver"; 
 
+	public SQLDatabase() {
+		super();
+	}
+	
 	public SQLDatabase(String server, String port, String database, String userName, String password) {
 		super();
 		this.server = server;
@@ -74,7 +78,7 @@ public class SQLDatabase extends Database {
 	
 	public Vector<Vector<Map<String,String>>> getQueryBatchResults(String sqlBatch) {
 		
-		//System.out.println(sqlBatch);
+		System.out.println(sqlBatch);
 		
 		Vector<Vector<Map<String,String>>> results = null;
 		

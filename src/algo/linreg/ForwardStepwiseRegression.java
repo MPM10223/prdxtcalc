@@ -28,6 +28,8 @@ public class ForwardStepwiseRegression extends Algorithm<RegressionModel> {
 		rc.setRExecutable("C:\\Program Files\\R\\R-2.15.2\\bin\\R.exe");
 		RCode r = rc.getRCode();
 		
+		log.logStepSequenceStarted(7);
+		
 		/*
 		> install.packages("RODBC")
 		
@@ -55,6 +57,10 @@ public class ForwardStepwiseRegression extends Algorithm<RegressionModel> {
 		String ivDvList = dao.getColumnList(", ", "\"", "\"", false, true);
 		r.addRCode(String.format("c <- cor(pd[,c(%s)], use=\"complete.obs\")[\"%s\",]", ivDvList, dao.getDvColumn())); //TODO: handle missing data better
 		rc.runAndReturnResultOnline("c");
+		
+		log.logStepCompleted();
+		log.logStepCompleted();
+		
 		double[] corr = rc.getParser().getAsDoubleArray("c");
 		
 		String bestIV = "";
@@ -76,11 +82,19 @@ public class ForwardStepwiseRegression extends Algorithm<RegressionModel> {
 		r.addRCode(String.format("coefficients <- model[\"coefficients\"]"));
 		rc.runAndReturnResultOnline("coefficients");
 		
+		log.logStepCompleted();
+		log.logStepCompleted();
+		log.logStepCompleted();
+		log.logStepCompleted();
+		
 		double[] coeff = rc.getParser().getAsDoubleArray("coefficients");
 		
 		rc.cleanRCode();
 		r.addRCode(String.format("terms <- model[\"terms\"]"));
 		rc.runAndReturnResultOnline("terms");
+		
+		log.logStepCompleted();
+		log.logStepSequenceCompleted();
 
 		String[] terms = rc.getParser().getAsStringArray("terms");
 		String[] termsParsed = terms[0].split(", ");

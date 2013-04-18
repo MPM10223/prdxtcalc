@@ -29,6 +29,10 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 	public KNNModel buildModel(AlgorithmDAO dao) {
 		SQLDatabase db = dao.getDb();
 		
+		//TODO: intelligently select subset of features and determine weights
+		
+		log.logStepSequenceStarted(3);
+		
 		// 1. create neighbors table
 		//neighborID, featureID, value
 		String neighborTableName = this.getNeighborTableName();
@@ -38,6 +42,8 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		db.executeQuery(sql);
 		sql = String.format("INSERT INTO [%s] (neighborID, featureID, value) %s", neighborTableName, dao.getSourceDataDepivotQuery(false));
 		db.executeQuery(sql);
+		
+		log.logStepCompleted();
 		
 		// 2. create DVs table
 		//neighborID, dv
@@ -49,6 +55,8 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		sql = String.format("INSERT INTO [%s] (neighborID, dv) %s", dvTableName, dao.getSourceDataQuery(false, true));
 		db.executeQuery(sql);
 		
+		log.logStepCompleted();
+		
 		// 3. create features table
 		//featureID, mu, sigma
 		String featuresTableName = this.getFeaturesTableName();
@@ -58,6 +66,9 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		db.executeQuery(sql);
 		sql = String.format("INSERT INTO [%s] (featureID, mu, sigma) SELECT featureID, AVG(value), STDEV(value) FROM [%s] GROUP BY featureID", featuresTableName, neighborTableName);
 		db.executeQuery(sql);
+		
+		log.logStepCompleted();
+		log.logStepSequenceCompleted();
 		
 		return new KNNModel(dao.getIvFeatureIDs(), db, this.k, neighborTableName, dvTableName, featuresTableName);
 	}
