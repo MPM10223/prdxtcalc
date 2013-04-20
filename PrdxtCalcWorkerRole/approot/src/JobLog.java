@@ -41,6 +41,11 @@ public class JobLog implements ILog {
 	
 	@Override
 	public void logJobFailed(Exception e) {
+		System.err.print(e.getMessage());
+		System.err.print(e.getStackTrace());
+		
+		//TODO: log error to DB
+		
 		logJobStatusChange(jobID, 1, 3);
 	}
 	

@@ -17,6 +17,7 @@ public abstract class JobRunner {
 	/**
 	 * @param server
 	 * @param database
+	 * @param port
 	 * @param jobqtable
 	 * @param username
 	 * @param password
@@ -26,7 +27,7 @@ public abstract class JobRunner {
 	public static void main(String[] args) {
 		
 		if(args.length != 6)
-			throw new RuntimeException();
+			throw new IllegalArgumentException("Invalid number of arguments. Usage: JobRunner [server] [port] [database] [jobQueueTable] [username] [password]");
 		
 		String server = args[0];
 		String port = args[1];
@@ -37,78 +38,85 @@ public abstract class JobRunner {
 		
 		if(JobRunner.dao == null) JobRunner.dao = new JobRunnerDAO(server, port, database, jobQtable, username, password);
 		
-		Map<String,String> pop = dao.popJobQueue();
+		while(true) {
 		
-		if(pop != null) {
-			int jobID = Integer.parseInt(pop.get("jobID"));
-			JobLog l = new JobLog(dao.getDB(), jobQtable, dao.getCalcServerID(), jobID);
+			Map<String,String> pop = dao.popJobQueue();
 			
-			try {
+			if(pop == null) {
+				try {
+					Thread.sleep(5000); // 5 seconds
+				} catch (InterruptedException e) {
+					// NoOp
+				}
+			} else {
+				int jobID = Integer.parseInt(pop.get("jobID"));
+				JobLog l = new JobLog(dao.getDB(), jobQtable, dao.getCalcServerID(), jobID);
 				
-				String jobTypeID = pop.get("jobTypeID");
-				JobType jobType = JobType.fromInt(Integer.parseInt(jobTypeID)); //JobType.valueOf(jobTypeID);
-				
-				String[] jobArgs = pop.get("args").split(" ");
-				
-				l.logJobStarted();
-				l.initJobProgress();
-				
-				switch(jobType) {
-				case BUILD_MODEL:
+				try {
 					
-					// args usage: problemID algorithmID 
-					if(jobArgs.length != 2) throw new RuntimeException();
-					int problemID = Integer.parseInt(jobArgs[0]);
-					int algorithmID = Integer.parseInt(jobArgs[1]);
+					String jobTypeID = pop.get("jobTypeID");
+					JobType jobType = JobType.fromInt(Integer.parseInt(jobTypeID)); //JobType.valueOf(jobTypeID);
 					
-					int modelID = buildModel(problemID, algorithmID, l);
+					String[] jobArgs = pop.get("args").split(" ");
 					
-					dao.recordJobReturnValue(jobID, String.valueOf(modelID));
+					l.logJobStarted();
+					l.initJobProgress();
 					
-					break;
-									
-				case EVALUATE_MODEL:
-					
-					// args usage: problemID algorithmID modelID
-					if(jobArgs.length != 3) throw new RuntimeException();
-					problemID = Integer.parseInt(jobArgs[0]);
-					algorithmID = Integer.parseInt(jobArgs[1]);
-					modelID = Integer.parseInt(jobArgs[2]);
-					
-					double accuracy = evaluateAlgorithm(problemID, algorithmID, modelID, l);
-					
-					dao.recordJobReturnValue(jobID, String.valueOf(accuracy));
-					
-					break;
-					
-				case APPLY_MODEL:
-					
-					// args usage: modelID modelInputSetID
-					if(jobArgs.length != 2) throw new RuntimeException();
-					modelID = Integer.parseInt(jobArgs[0]);
-					int applyModelRunID = Integer.parseInt(jobArgs[1]);
-					
-					Double prediction = applyModel(modelID, applyModelRunID, l);
-					
-					if(prediction != null) {
-						dao.recordJobReturnValue(jobID, String.valueOf(prediction));
+					switch(jobType) {
+					case BUILD_MODEL:
+						
+						// args usage: problemID algorithmID 
+						if(jobArgs.length != 2) throw new RuntimeException();
+						int problemID = Integer.parseInt(jobArgs[0]);
+						int algorithmID = Integer.parseInt(jobArgs[1]);
+						
+						int modelID = buildModel(problemID, algorithmID, l);
+						
+						dao.recordJobReturnValue(jobID, String.valueOf(modelID));
+						
+						break;
+										
+					case EVALUATE_MODEL:
+						
+						// args usage: problemID algorithmID modelID
+						if(jobArgs.length != 3) throw new RuntimeException();
+						problemID = Integer.parseInt(jobArgs[0]);
+						algorithmID = Integer.parseInt(jobArgs[1]);
+						modelID = Integer.parseInt(jobArgs[2]);
+						
+						double accuracy = evaluateAlgorithm(problemID, algorithmID, modelID, l);
+						
+						dao.recordJobReturnValue(jobID, String.valueOf(accuracy));
+						
+						break;
+						
+					case APPLY_MODEL:
+						
+						// args usage: modelID modelInputSetID
+						if(jobArgs.length != 2) throw new RuntimeException();
+						modelID = Integer.parseInt(jobArgs[0]);
+						int applyModelRunID = Integer.parseInt(jobArgs[1]);
+						
+						Double prediction = applyModel(modelID, applyModelRunID, l);
+						
+						if(prediction != null) {
+							dao.recordJobReturnValue(jobID, String.valueOf(prediction));
+						}
+						
+						break;
+						
+					default:
+						throw new RuntimeException(String.format("Unsupported jobTypeID: %d", jobTypeID));
 					}
 					
-					break;
-					
-				default:
-					throw new RuntimeException(String.format("Unsupported jobTypeID: %d", jobTypeID));
+					l.logJobCompleted();
+			
+				} catch(Exception e) {
+					l.logJobFailed(e);
+					//throw new RuntimeException(e);
 				}
-				
-				l.logJobCompleted();
-		
-			} catch(Exception e) {
-				//l.logJobFailed(e);
-				throw new RuntimeException(e);
 			}
 		}
-		
-		// TODO: put this in a loop
 	}
 
 	protected static int buildModel(int problemID, int algorithmID, ILog log) {
