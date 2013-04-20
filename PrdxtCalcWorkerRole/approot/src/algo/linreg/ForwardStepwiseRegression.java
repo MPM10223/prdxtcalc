@@ -42,7 +42,7 @@ public class ForwardStepwiseRegression extends Algorithm<RegressionModel> {
 		 */
 		
 		// Connect to DB
-		//r.addRCode(String.format("install.packages(\"RODBC\")"));
+		//r.addRCode(String.format("install.packages(\"RODBC\", repos=\"http://cran.us.r-project.org\")"));
 		r.addRCode(String.format("library(RODBC)"));
 		SQLDatabase db = dao.getDb();
 		String connString = Database.getAzureODBCConnectionString(db.getServer(), db.getPort(), db.getDatabase(), db.getUserName(), db.getPassword(), true);
