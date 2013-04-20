@@ -14,7 +14,7 @@ public abstract class Database {
 	public static String getAzureODBCConnectionString(String server, String port, String db, String uid, String pwd, boolean encrypt) {
 		//Driver={SQL Server Native Client 10.0};Server=tcp:hwvhpv4cb1.database.windows.net,1433;Database=prdxt;Uid=xxxxx@hwvhpv4cb1;Pwd=xxxxx;Encrypt=yes;
 		return String.format("Driver={%s};Server=tcp:%s,%s;Database=%s;Uid=%s;Pwd=%s;Encrypt=%s;"
-				, "SQL Server Native Client 10.0"
+				, System.getProperty("os.name").equals("Windows XP") ? "SQL Server Native Client 10.0" : "SQL Server Native Client 11.0"
 				, server
 				, port
 				, db
