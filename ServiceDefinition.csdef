@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<ServiceDefinition name="prdxt" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
+  <WorkerRole name="prdxtcalc" vmsize="Small">
+  	<Startup>
+  		<!-- Sample startup task calling startup.cmd from the role's approot\util folder -->
+			<Task commandLine="startup\startup.cmd" executionContext="elevated" taskType="background"/>
+    </Startup>  
+    <Imports>
+  	  <Import moduleName="RemoteAccess"/>
+  	  <Import moduleName="RemoteForwarder"/>
+    </Imports>
+  </WorkerRole>
+</ServiceDefinition>
