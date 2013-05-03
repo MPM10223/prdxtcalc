@@ -1,5 +1,5 @@
 @REM unzip JRE
-cscript /B /Nologo ..\util\unzip.vbs ..\JRE\jre6.zip "%ROLEROOT%\approot"
+..\util\log.cmd cscript /B /Nologo ..\util\unzip.vbs ..\JRE\jre6.zip "%ROLEROOT%\approot"
  
 @REM start the server
 cd "%ROLEROOT%\approot\bin"

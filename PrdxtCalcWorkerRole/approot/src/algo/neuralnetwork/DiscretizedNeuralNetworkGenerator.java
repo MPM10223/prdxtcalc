@@ -16,22 +16,30 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 	protected double minimumSynapseWeight;
 	protected double maximumSynapseWeight;
 	
-	protected double minimumInputThreshhold;
-	protected double maximumInputThreshhold;
+	protected double[][] inputThreshholdRanges;
 	
 	public static final int BYTES_PER_SEGMENT = 8;
 	public static final int MAX_DISCRETIZATION_THRESHHOLDS = 4;
 	
 	public DiscretizedNeuralNetworkGenerator(int[] inputFeatures) {
-		this(inputFeatures, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+		double[][] ranges = new double[inputFeatures.length][2];
+		for(int i = 0; i < inputFeatures.length; i++) {
+			ranges[i][0] = Double.NEGATIVE_INFINITY;
+			ranges[i][1] = Double.POSITIVE_INFINITY;
+		}
+		
+		this.initialize(inputFeatures, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, ranges);
 	}
 	
-	public DiscretizedNeuralNetworkGenerator(int[] inputFeatures, double minimumSynapseWeight, double maximumSynapseWeight, double minimumInputThreshhold, double maximumInputThreshhold) {
+	public DiscretizedNeuralNetworkGenerator(int[] inputFeatures, double minimumSynapseWeight, double maximumSynapseWeight, double[][] inputThreshholdRanges) {
+		this.initialize(inputFeatures, minimumSynapseWeight, maximumSynapseWeight, inputThreshholdRanges);
+	}
+	
+	private void initialize(int[] inputFeatures, double minimumSynapseWeight, double maximumSynapseWeight, double[][] inputThreshholdRanges) {
 		this.inputFeatures = inputFeatures;
 		this.minimumSynapseWeight = minimumSynapseWeight;
 		this.maximumSynapseWeight = maximumSynapseWeight;
-		this.minimumInputThreshhold = minimumInputThreshhold;
-		this.maximumInputThreshhold = maximumInputThreshhold;
+		this.inputThreshholdRanges = inputThreshholdRanges;
 	}
 
 	@Override
@@ -90,11 +98,13 @@ public class DiscretizedNeuralNetworkGenerator implements IOrganismGenerator<Dis
 		// t x N
 		if(data.length != (this.getNetworkSize() * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT)) throw new IllegalArgumentException();
 		
-		double[][] t = GeneratorUtility.generateDoubleMatrix(data, this.getNetworkSize(), this.minimumInputThreshhold, this.maximumInputThreshhold);
+		double[][] t = new double[this.getNetworkSize()][];
 		
-		// sort
 		for(int i = 0; i < this.getNetworkSize(); i++) {
-			Arrays.sort(t[i]);
+			byte[] chunk = Arrays.copyOfRange(data, i * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT, (i + 1) * MAX_DISCRETIZATION_THRESHHOLDS * BYTES_PER_SEGMENT);
+			double[] th = GeneratorUtility.generateDoubleArray(chunk, this.inputThreshholdRanges[i][0], this.inputThreshholdRanges[i][1]);
+			Arrays.sort(th);
+			t[i] = th;
 		}
 		
 		return t;

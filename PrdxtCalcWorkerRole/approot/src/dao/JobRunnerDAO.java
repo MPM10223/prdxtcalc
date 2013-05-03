@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Vector;
 
 import algo.Observation;
+import algo.PredictiveModel;
+import algo.util.dao.ILog;
 import algo.util.dao.SQLInsertBuffer;
 
 import sqlWrappers.SQLDatabase;
@@ -189,6 +191,58 @@ public class JobRunnerDAO {
 		
 		// drop temp table
 		db.dropTableIfExists(this.getSaveApplyModelTempTableName());
+	}
+	
+	public int createFeatureElasticityRun(PredictiveModel m, int numDegrees) {
+		
+		// applyModelRuns
+		String sql = String.format("INSERT INTO applyModelRuns (modelID) SELECT %d%nSELECT scope_identity() as applyModelRunID", m.getModelID());
+		Vector<Vector<Map<String,String>>> results = db.getQueryBatchResults(sql);
+		int applyModelRunID = Integer.parseInt(results.lastElement().firstElement().get("applyModelRunID"));
+		
+		// degrees temp table
+		String tempTable = "temp_degrees";
+		db.dropTableIfExists(tempTable);
+		sql = String.format("CREATE TABLE dbo.[%s] ( degreeID int not null, CONSTRAINT PK__%s PRIMARY KEY (degreeID) )", tempTable, tempTable);
+		db.executeQuery(sql);
+		
+		SQLInsertBuffer b = new SQLInsertBuffer(this.db, "temp_degrees", new String[] {"degreeID"});
+		b.startBufferedInsert(numDegrees);
+		
+		for(int i = 0; i < numDegrees; i++) {
+			b.insertRow(new String[] { String.valueOf(i + 1) });
+		}
+		
+		b.finishBufferedInsert();
+		
+		// applyModelTargets
+		sql = String.format("INSERT INTO applyModelTargets (applyModelRunID, identifier) SELECT %d, 'ElasTest | f' + cast(f.featureID as varchar(10)) + ' | d' + cast(d.degreeID as varchar(10)) FROM modelFeatures f CROSS JOIN [%s] d WHERE f.modelID = %d", applyModelRunID, tempTable, m.getModelID());
+		db.executeQuery(sql);
+		
+		// applyModelInputs
+		double sigmaRange = 1.0;
+		String subjectFeatureID = "cast(substring(t.identifier, charindex('f', t.identifier) + 1, charindex('|', t.identifier, charindex('f', t.identifier)) - charindex('f', t.identifier) - 2) as int)";
+		String degreeID = "cast(substring(t.identifier, charindex('d', t.identifier) + 1, len(t.identifier) - charindex('d', t.identifier)) as float) - 1";
+		
+		sql = String.format("INSERT INTO applyModelInputs (applyModelTargetID, modelID, inputIndex, [value]) SELECT t.applyModelTargetID, %d, f.inputIndex, CASE WHEN %s = f.featureID THEN ( (%s) / cast( %d - 1 as float) ) * (2 * %f * sigma) + (f.mean - %f * f.sigma) ELSE f.mean END as featureValue FROM applyModelTargets t JOIN modelFeatures f ON f.modelID = %d WHERE t.applyModelRunID = %d"
+					, m.getModelID()
+					, subjectFeatureID
+					, degreeID
+					, numDegrees
+					, sigmaRange
+					, sigmaRange
+					, m.getModelID()
+					, applyModelRunID
+				);
+		
+		db.executeQuery(sql);
+		
+		return applyModelRunID;
+	}
+	
+	public void setModelFeatureElasticityRun(PredictiveModel m, int applyModelRunID) {
+		String sql = String.format("UPDATE models SET featureElasticityRunID = %d WHERE modelID = %d", applyModelRunID, m.getModelID());
+		db.executeQuery(sql);
 	}
 	
 	public void requestModelEvaluation(int problemID, int algorithmID, int modelID) {

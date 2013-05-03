@@ -8,7 +8,7 @@ public class R2TestDataEvaluator extends TestDataEvaluator {
 	}
 
 	@Override
-	public double evaluate(PredictiveModel subject) {
+	public double evaluateAfterPrediction(PredictiveModel subject) {
 		double naiveVariance = 0.0;
 		double modelVariance = 0.0;
 		
@@ -16,11 +16,13 @@ public class R2TestDataEvaluator extends TestDataEvaluator {
 		
 		for(int i = 0; i < testData.length; i++) {
 			Observation o = testData[i];
-			double prediction = subject.predict(o.getIndependentVariables());
-			o.setPrediction(prediction);
 			
-			modelVariance += Math.pow(o.getDependentVariable() - prediction, 2);
+			modelVariance += Math.pow(o.getDependentVariable() - o.getPrediction(), 2);
+			//double diff = (o.getDependentVariable() - o.getPrediction());
+			//modelVariance += (diff * diff);
 			naiveVariance += Math.pow(o.getDependentVariable() - naivePrediction, 2);
+			//diff = (o.getDependentVariable() - naivePrediction);
+			//naiveVariance += (diff * diff);
 		}
 		
 		return 1.0 - (modelVariance / naiveVariance);

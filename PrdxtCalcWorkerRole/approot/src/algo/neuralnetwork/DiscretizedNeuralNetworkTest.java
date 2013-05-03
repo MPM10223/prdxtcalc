@@ -31,6 +31,7 @@ public class DiscretizedNeuralNetworkTest {
 		org.junit.Assert.assertArrayEquals(dna, nn.getDNA());
 	}
 	
+	/*
 	@Test
 	public void test_roundtripDNA_rand() {
 		DiscretizedNeuralNetworkGenerator g = new DiscretizedNeuralNetworkGenerator(new int[] {1,2,3,4,5,6,7,8,9,10,11,12});
@@ -42,6 +43,7 @@ public class DiscretizedNeuralNetworkTest {
 		DiscretizedNeuralNetwork nn = g.generate(dna);
 		org.junit.Assert.assertArrayEquals(dna, nn.getDNA());
 	}
+	*/
 	
 	@Test
 	public void test_processSignal_Excel() {
@@ -87,5 +89,32 @@ public class DiscretizedNeuralNetworkTest {
 		double prediction = dnn.predict(inputs);
 		Assert.assertEquals(0.13183917638641454, prediction);
 		
+	}
+	
+	@Test
+	public void test_predictSpeed() {
+		int n = 2000000;
+		int k = 10;
+		Random r = new Random(781789653);
+		
+		int[] inputFeatures = new int[] { 1 };
+		
+		double[] t = new double[k];
+		for(int i = 0; i < k; i++) {
+			t[i] = (double)i;
+		}
+		
+		double[][] threshholds = new double[][] { t };
+		DiscretizedNeuralNetwork dnn = new DiscretizedNeuralNetwork(
+				inputFeatures
+				, 1
+				, new double[][] { { 1 } }
+				, new double[] { 1 }
+				, threshholds
+			);
+		
+		for(int i = 0; i < n; i++) {
+			dnn.predict(new double[] { r.nextDouble() } );
+		}
 	}
 }

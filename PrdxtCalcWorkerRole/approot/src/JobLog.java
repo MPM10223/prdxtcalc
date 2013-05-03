@@ -1,3 +1,9 @@
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.Map;
 import java.util.Stack;
 import java.util.Vector;
@@ -41,10 +47,39 @@ public class JobLog implements ILog {
 	
 	@Override
 	public void logJobFailed(Exception e) {
-		System.err.print(e.getMessage());
-		System.err.print(e.getStackTrace());
+		System.err.println("ERROR: " + e.getMessage());
+		e.printStackTrace(System.err);
 		
-		//TODO: log error to DB
+		PrintStream s;
+		try {
+			s = new PrintStream("error.txt");
+		} catch (FileNotFoundException ex) {
+			throw new RuntimeException(ex);
+		}
+		e.printStackTrace(s);
+		
+		FileInputStream f;
+		try {
+			f = new FileInputStream("error.txt");
+		} catch (FileNotFoundException ex) {
+			throw new RuntimeException(ex);
+		}
+		BufferedReader r = new BufferedReader(new InputStreamReader(f));
+		StringBuilder stackTrace = new StringBuilder();
+		String line = null;
+		
+		try {
+			while((line = r.readLine()) != null) {
+				if(stackTrace.length() > 0) stackTrace.append(String.format("%n"));
+				stackTrace.append(line);
+			}
+		} catch (IOException ex) {
+			// continue on with stackTrace as is
+		}
+		
+		String sql = String.format("INSERT INTO jobErrors (jobID, errorMessage, stackTrace) SELECT %d, '%s', '%s'", jobID, e.getMessage(), stackTrace.toString());
+		db.refreshConnection();
+		db.executeQuery(sql);
 		
 		logJobStatusChange(jobID, 1, 3);
 	}

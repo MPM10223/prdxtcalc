@@ -24,6 +24,10 @@ public abstract class Database {
 			);
 	}
 	
+	public void refreshConnection() {
+		this.establishConnection();
+	}
+	
 	protected void establishConnection() {
 		
 		try {

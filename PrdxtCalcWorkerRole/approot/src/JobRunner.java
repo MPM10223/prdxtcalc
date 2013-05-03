@@ -70,9 +70,18 @@ public abstract class JobRunner {
 						int problemID = Integer.parseInt(jobArgs[0]);
 						int algorithmID = Integer.parseInt(jobArgs[1]);
 						
-						int modelID = buildModel(problemID, algorithmID, l);
+						l.logStepSequenceStarted(2);
 						
-						dao.recordJobReturnValue(jobID, String.valueOf(modelID));
+						PredictiveModel m = buildModel(problemID, algorithmID, l);
+						
+						l.logStepCompleted();
+						
+						testFeatureEleasticity(m, l);
+						
+						dao.recordJobReturnValue(jobID, String.valueOf(m.getModelID()));
+						
+						l.logStepCompleted();
+						l.logStepSequenceCompleted();
 						
 						break;
 										
@@ -82,7 +91,7 @@ public abstract class JobRunner {
 						if(jobArgs.length != 3) throw new RuntimeException();
 						problemID = Integer.parseInt(jobArgs[0]);
 						algorithmID = Integer.parseInt(jobArgs[1]);
-						modelID = Integer.parseInt(jobArgs[2]);
+						int modelID = Integer.parseInt(jobArgs[2]);
 						
 						double accuracy = evaluateAlgorithm(problemID, algorithmID, modelID, l);
 						
@@ -119,7 +128,7 @@ public abstract class JobRunner {
 		}
 	}
 
-	protected static int buildModel(int problemID, int algorithmID, ILog log) {
+	public static PredictiveModel buildModel(int problemID, int algorithmID, ILog log) {
 		
 		Algorithm<? extends PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		a.setLog(log);
@@ -128,11 +137,20 @@ public abstract class JobRunner {
 		int modelID = m.toDB(dao.getDB(), problemID, algorithmID);
 		dao.requestModelEvaluation(problemID, algorithmID, modelID);
 		
-		return modelID;
+		return m;
 		
 	}
 	
-	protected static double evaluateAlgorithm(int problemID, int algorithmID, int modelID, ILog log) {
+	public static void testFeatureEleasticity(PredictiveModel m, ILog log) {
+
+		m.setLog(log);
+		int applyModelRunID = dao.createFeatureElasticityRun(m, 7);
+		applyModel(m, applyModelRunID, log);
+		dao.setModelFeatureElasticityRun(m, applyModelRunID);
+		
+	}
+	
+	public static double evaluateAlgorithm(int problemID, int algorithmID, int modelID, ILog log) {
 		
 		Algorithm<PredictiveModel> a = getAlgorithmFromID(algorithmID);
 		a.setLog(log);
@@ -146,17 +164,22 @@ public abstract class JobRunner {
 		
 	}
 	
-	protected static Double applyModel(int modelID, int applyModelRunID, ILog log) {
-
+	public static Double applyModel(int modelID, int applyModelRunID, ILog log) {
+		
 		PredictiveModel m = getModelFromID(modelID);
+		return applyModel(m, applyModelRunID, log);
+		
+	}
+	
+	protected static Double applyModel(PredictiveModel m, int applyModelRunID, ILog log) {
+
 		m.setLog(log);
 		Observation[] targets = dao.getApplyModelTargets(applyModelRunID);
 		m.predict(targets);
 		dao.saveApplyModelResults(targets);
 		
 		if(targets.length == 1) return targets[0].getPrediction();
-		return null;
-		
+		return null;		
 	}
 	
 	protected static Algorithm<PredictiveModel> getAlgorithmFromID(int algorithmID) {

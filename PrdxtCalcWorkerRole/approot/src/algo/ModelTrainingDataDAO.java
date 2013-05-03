@@ -134,4 +134,21 @@ public class ModelTrainingDataDAO {
 		
 		return this.featureRanges[featureIndex];
 	}
+	
+	public double[] getGlobalFeatureRange() {
+		double[] globalRange = new double[] { Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY };
+		for(int i = 0; i < this.ivFeatureIDs.length; i++) {
+			double[] range = this.getFeatureRange(this.ivFeatureIDs[i]);
+			if(range[0] < globalRange[0]) globalRange[0] = range[0];
+			if(range[1] > globalRange[1]) globalRange[1] = range[1];
+		}
+		return globalRange;
+	}
+	
+	public double[][] getFeatureRanges() {
+		for(int i = 0; i < this.ivFeatureIDs.length; i++) {
+			this.getFeatureRange(this.ivFeatureIDs[i]);
+		}
+		return this.featureRanges;
+	}
 }

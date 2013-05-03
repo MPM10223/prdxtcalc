@@ -25,6 +25,10 @@ public class TestDataEvaluator implements IFitnessFunction<PredictiveModel> {
 			this.predictIndividually(subject);
 		}
 		
+		return this.evaluateAfterPrediction(subject);
+	}
+	
+	protected double evaluateAfterPrediction(PredictiveModel subject) {
 		double score = 0;
 		for(int i = 0; i < testData.length; i++) {
 			Observation o = testData[i];
@@ -32,7 +36,7 @@ public class TestDataEvaluator implements IFitnessFunction<PredictiveModel> {
 				score++;
 			}
 		}
-		return score / (double)testData.length;		
+		return score / (double)testData.length;
 	}
 	
 	private void predictIndividually(PredictiveModel subject) {

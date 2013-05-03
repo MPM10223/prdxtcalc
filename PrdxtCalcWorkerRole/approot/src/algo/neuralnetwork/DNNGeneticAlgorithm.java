@@ -14,13 +14,14 @@ public class DNNGeneticAlgorithm extends Algorithm<DiscretizedNeuralNetwork> {
 	private double maxMutationRate;
 	private double minCrossoverRate;
 	private double maxCrossoverRate;
+	
 	private Class<DiscretizedNeuralNetwork> ct;
 	
 	private DiscretizedNeuralNetwork solution;
 
 	public DNNGeneticAlgorithm() {
 		//TODO: verify that these are good defaults
-		this(100, 10, 0.1, 0.4, 0.2, 0.6, DiscretizedNeuralNetwork.class);
+		this(100, 25, 0.1, 0.4, 0.2, 0.6, DiscretizedNeuralNetwork.class);
 	}
 	
 	public DNNGeneticAlgorithm(
@@ -34,13 +35,16 @@ public class DNNGeneticAlgorithm extends Algorithm<DiscretizedNeuralNetwork> {
 		this.maxMutationRate = maxMutationRate;
 		this.minCrossoverRate = minCrossoverRate;
 		this.maxCrossoverRate = maxCrossoverRate;
+		
 		this.ct = ct;
 	}
-	
+
 	@Override
 	public DiscretizedNeuralNetwork buildModel(AlgorithmDAO dao) {
 		
-		DiscretizedNeuralNetworkGenerator generator = new DiscretizedNeuralNetworkGenerator(dao.getIvFeatureIDs());
+		double[][] featureRanges = dao.getFeatureRanges();
+		
+		DiscretizedNeuralNetworkGenerator generator = new DiscretizedNeuralNetworkGenerator(dao.getIvFeatureIDs(), -100, 100, featureRanges);
 		EvaluationType et = (dao.getDVIsBinary() ? EvaluationType.BOOLEAN : EvaluationType.CONTINUOUS_R2); // TODO: detect & support discrete non-binary
 		SQLTestDataEvaluator<DiscretizedNeuralNetwork> fitness = new SQLTestDataEvaluator<DiscretizedNeuralNetwork>(dao.getDb(), dao.getDataTable(), dao.getIdColumn(), dao.getIvColumns(), dao.getIvFeatureIDs(), dao.getDvColumn(), dao.getPredicate(), et); 
 		
@@ -48,5 +52,4 @@ public class DNNGeneticAlgorithm extends Algorithm<DiscretizedNeuralNetwork> {
 		this.solution = s.search();
 		return this.solution;
 	}
-
 }

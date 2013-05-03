@@ -1,5 +1,6 @@
 package algo;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Vector;
 
@@ -33,6 +34,22 @@ public abstract class PredictiveModel {
 	public void setLog(ILog log) {
 		this.log = log;
 	}
+	
+	public Integer getModelID() {
+		return modelID;
+	}
+
+	public void setModelID(Integer modelID) {
+		this.modelID = modelID;
+	}
+	
+	public int[] getInputFeatures() {
+		return inputFeatures;
+	}
+
+	public void setInputFeatures(int[] inputFeatures) {
+		this.inputFeatures = inputFeatures;
+	}
 
 	// ABSTRACT METHODS
 	public abstract int getModelTypeID();
@@ -60,15 +77,29 @@ public abstract class PredictiveModel {
 		this.modelID = Integer.parseInt(modelID);
 		
 		// model input features table
-		SQLInsertBuffer b = new SQLInsertBuffer(db, "modelFeatures", new String[] {"modelID","inputIndex","problemID","featureID"});
+		String featureIDList = Arrays.toString(this.inputFeatures);
+		featureIDList = featureIDList.substring(1, featureIDList.length() - 1);
+		// TODO: also calculate average difference from mean
+		sql = String.format("SELECT featureID, AVG(value) mean, MIN(value) rangeMin, MAX(value) rangeMax, STDEV(value) sigma, COUNT(*) num FROM problemData p WHERE problemID = %d AND featureID IN (%s) AND EXISTS (SELECT * FROM problemData x WHERE x.observationID = p.observationID AND x.featureID = (SELECT featureID FROM problemFeatures WHERE problemID = %d AND isDV = 1)) GROUP BY featureID", problemID, featureIDList, problemID);
+		Vector<Map<String,String>> featureStats = db.getQueryRows(sql);
+		if(featureStats.size() != this.inputFeatures.length) throw new RuntimeException("feature statistics query returned too few rows");
+		
+		SQLInsertBuffer b = new SQLInsertBuffer(db, "modelFeatures", new String[] {"modelID","inputIndex","problemID","featureID","mean","sigma","rangeMin","rangeMax","num"});
 		
 		b.startBufferedInsert(inputFeatures.length);
-		for(int i = 0; i < inputFeatures.length; i++) {
+		for(Map<String,String> featureStat : featureStats) {
+			int featureID = Integer.parseInt(featureStat.get("featureID"));
+			int index = this.getInputIndexFromFeatureID(featureID);
 			b.insertRow(new String[] { 
 					String.valueOf(this.modelID)
-					, String.valueOf(i)
+					, String.valueOf(index)
 					, String.valueOf(problemID)
-					, String.valueOf(inputFeatures[i])
+					, String.valueOf(featureID)
+					, featureStat.get("mean")
+					, featureStat.get("sigma")
+					, featureStat.get("rangeMin")
+					, featureStat.get("rangeMax")
+					, featureStat.get("num")
 				});
 		}
 		b.finishBufferedInsert();
