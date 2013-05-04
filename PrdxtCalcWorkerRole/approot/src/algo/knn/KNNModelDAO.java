@@ -46,7 +46,7 @@ public class KNNModelDAO {
 		this.featuresTable = featuresTable;
 	}
 	
-	private String findNearestNeighbors(Map<Integer,Map<Integer, Double>> targets) {
+	private String findNearestNeighbors(Map<Integer,Map<Integer, Double>> targets, Map<Integer, Double> featureWeights) {
 		// 1. create target table for join
 		String targetTable = this.getTargetTempTableName();
 		db.dropTableIfExists(targetTable);
@@ -57,7 +57,7 @@ public class KNNModelDAO {
 		SQLInsertBuffer b = new SQLInsertBuffer(db, targetTable, new String[] {"targetID","featureID","value"});
 		
 		int numTargets = targets.size();
-		int numFeatures = 10; //TODO: grab this from the targets map inexpensively
+		int numFeatures = featureWeights.size();
 		
 		b.startBufferedInsert(numTargets * numFeatures);
 		for(Integer targetID : targets.keySet()) {
@@ -70,16 +70,30 @@ public class KNNModelDAO {
 		
 		b.finishBufferedInsert();
 		
+		// 2.1. create & fill featureWeight table
+		String featureWeightTable = this.getFeatureWeightTempTableName();
+		db.dropTableIfExists(featureWeightTable);
+		sql = String.format("CREATE TABLE [%s] (featureID int not null, [weight] float, PRIMARY KEY (featureID))", featureWeightTable);
+		db.executeQuery(sql);
+		
+		b = new SQLInsertBuffer(db, featureWeightTable, new String[] {"featureID","weight"});
+		b.startBufferedInsert(featureWeights.size());
+		for(Integer featureID : featureWeights.keySet()) {
+			b.insertRow(new String[] { String.valueOf(featureID), String.valueOf(featureWeights.get(featureID)) });
+		}
+		b.finishBufferedInsert();
+		
 		// 3. create neighborRank table
 		String targetNeighborTable = this.getTargetNeighborTableName();
-		String distanceExpression = String.format("sqrt(SUM( power(((n.value - f.mu) / f.sigma) - ((t.value - f.mu) / f.sigma), 2) ))");
+		String distanceExpression = String.format("sqrt(SUM( w.weight * power(((n.value - f.mu) / f.sigma) - ((t.value - f.mu) / f.sigma), 2) ))");
 		//TODO: support more nuanced handling of ties
 		db.dropTableIfExists(targetNeighborTable);
 		sql = String.format("CREATE TABLE [%s] (targetID int not null, neighborID int not null, distance float not null, neighborRank int not null, PRIMARY KEY (targetID, neighborID))", targetNeighborTable);
 		db.executeQuery(sql);
 		
 		// 4. fill neighborRank table
-		sql = String.format("INSERT INTO [%s] (targetID, neighborID, distance, neighborRank) SELECT t.targetID, n.neighborID, %s as distance, rank() OVER (PARTITION BY t.targetID ORDER BY %s ASC) as neighborRank FROM [%s] n JOIN [%s] f ON n.featureID = f.featureID JOIN [%s] t ON n.featureID = t.featureID GROUP BY t.targetID, n.neighborID", targetNeighborTable, distanceExpression, distanceExpression, neighborsTable, featuresTable, targetTable);
+		sql = String.format("INSERT INTO [%s] (targetID, neighborID, distance, neighborRank) SELECT t.targetID, n.neighborID, %s as distance, rank() OVER (PARTITION BY t.targetID ORDER BY %s ASC) as neighborRank FROM [%s] n JOIN [%s] f ON n.featureID = f.featureID JOIN [%s] w ON w.featureID = n.featureID JOIN [%s] t ON n.featureID = t.featureID GROUP BY t.targetID, n.neighborID"
+				, targetNeighborTable, distanceExpression, distanceExpression, neighborsTable, featuresTable, featureWeightTable, targetTable);
 		
 		int timeout = db.getQueryTimeout();
 		db.setQueryTimeout(0); // infinite
@@ -89,15 +103,15 @@ public class KNNModelDAO {
 		return targetNeighborTable;
 	}
 	
-	public Vector<Map<String,String>> getKNearestNeighbors(Map<Integer, Double> targetIVs, int k) {
+	public Vector<Map<String,String>> getKNearestNeighbors(Map<Integer, Double> targetIVs, Map<Integer, Double> featureWeights, int k) {
 		Map<Integer,Map<Integer,Double>> targets = new HashMap<Integer, Map<Integer,Double>>(1);
 		targets.put(1, targetIVs);
-		Map<Integer,Vector<Map<String,String>>> neighbors = this.getKNearestNeighbors(targets, k);
+		Map<Integer,Vector<Map<String,String>>> neighbors = this.getKNearestNeighbors(targets, featureWeights, k);
 		return neighbors.get(1);
 	}
 	
-	public Map<Integer,Vector<Map<String,String>>> getKNearestNeighbors(Map<Integer,Map<Integer, Double>> targets, int k) {
-		String targetNeighborTable = this.findNearestNeighbors(targets);
+	public Map<Integer,Vector<Map<String,String>>> getKNearestNeighbors(Map<Integer,Map<Integer, Double>> targets, Map<Integer, Double> featureWeights, int k) {
+		String targetNeighborTable = this.findNearestNeighbors(targets, featureWeights);
 		
 		String sql = String.format("SELECT n.targetID, n.neighborID, d.dv FROM [%s] n JOIN [%s] d ON n.neighborID = d.neighborID WHERE n.neighborRank <= %d ORDER BY n.targetID, n.neighborID, d.dv", targetNeighborTable, dvTable, k);
 		Vector<Map<String,String>> results = db.getQueryRows(sql);
@@ -136,11 +150,17 @@ public class KNNModelDAO {
 	protected void cleanUpTempTables() {
 		db.dropTableIfExists(this.getTargetTempTableName());
 		db.dropTableIfExists(this.getTargetNeighborTableName());
+		db.dropTableIfExists(this.getFeatureWeightTempTableName());
 	}
 		
 	protected String getTargetTempTableName() {
 		//TODO: deal with concurrency
 		return String.format("knn_targetFeatures");
+	}
+	
+	private String getFeatureWeightTempTableName() {
+		//TODO: deal with concurrency
+		return String.format("knn_featureWeights");
 	}
 	
 	protected String getTargetNeighborTableName() {

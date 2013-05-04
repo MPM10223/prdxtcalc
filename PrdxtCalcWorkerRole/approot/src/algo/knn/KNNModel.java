@@ -7,23 +7,25 @@ import java.util.Vector;
 import sqlWrappers.SQLDatabase;
 import algo.Observation;
 import algo.PredictiveModel;
+import algo.util.dao.SQLInsertBuffer;
 
 public class KNNModel extends PredictiveModel {
 	
 	protected KNNModelDAO dao;
 	protected int k;
+	protected HashMap<Integer, Double> featureWeights;
 	protected String neighborsTable;
 	protected String dvsTable;
 	protected String featuresTable;
-	//TODO: add feature weights
 
 	public KNNModel() {
 		super();
 	}
 	
-	public KNNModel(int[] inputFeatures, SQLDatabase db, int k, String neighborsTable, String dvsTable, String featuresTable) {
+	public KNNModel(int[] inputFeatures, SQLDatabase db, int k, HashMap<Integer, Double> featureWeights, String neighborsTable, String dvsTable, String featuresTable) {
 		super(inputFeatures);
 		this.k = k;
+		this.featureWeights = featureWeights;
 		this.neighborsTable = neighborsTable;
 		this.dvsTable = dvsTable;
 		this.featuresTable = featuresTable;
@@ -37,6 +39,14 @@ public class KNNModel extends PredictiveModel {
 
 	public void setK(int k) {
 		this.k = k;
+	}
+	
+	public HashMap<Integer, Double> getFeatureWeights() {
+		return featureWeights;
+	}
+
+	public void setFeatureWeights(HashMap<Integer, Double> featureWeights) {
+		this.featureWeights = featureWeights;
 	}
 
 	public String getNeighborsTable() {
@@ -71,7 +81,7 @@ public class KNNModel extends PredictiveModel {
 	
 	@Override
 	public double predict(Map<Integer, Double> ivs) {
-		Vector<Map<String,String>> neighbors = dao.getKNearestNeighbors(ivs, k);
+		Vector<Map<String,String>> neighbors = dao.getKNearestNeighbors(ivs, this.featureWeights, k);
 		return this.predict(neighbors);
 	}
 
@@ -85,7 +95,7 @@ public class KNNModel extends PredictiveModel {
 			targetIVs.put(targetID, o.getIndependentVariables());
 		}
 		
-		Map<Integer,Vector<Map<String,String>>> targetNeighbors = dao.getKNearestNeighbors(targetIVs, this.k);
+		Map<Integer,Vector<Map<String,String>>> targetNeighbors = dao.getKNearestNeighbors(targetIVs, this.featureWeights, this.k);
 		
 		for(int targetID : targetNeighbors.keySet()) {
 			Observation o = targetsMap.get(targetID);
@@ -138,6 +148,18 @@ public class KNNModel extends PredictiveModel {
 				, modelID, k, this.getNeighborsTable(), this.getDvsTable(), this.getFeaturesTable());
 		db.executeQuery(sql);
 		
+		// 5. knn_modelFeatures
+		SQLInsertBuffer b = new SQLInsertBuffer(db, "knn_modelFeatures", new String[] { "modelID", "inputIndex", "weight" });
+		b.startBufferedInsert(this.inputFeatures.length);
+		for(int i = 0; i < this.inputFeatures.length; i++) {
+			b.insertRow(new String[] {
+					String.valueOf(modelID)
+					, String.valueOf(i)
+					, String.valueOf(this.featureWeights.get(this.inputFeatures[i]))
+				});
+		}
+		b.finishBufferedInsert();
+		
 		return modelID;
 	}
 
@@ -154,6 +176,15 @@ public class KNNModel extends PredictiveModel {
 		this.featuresTable = row.get("featuresTable");
 		
 		this.dao = new KNNModelDAO(db, this.neighborsTable, this.dvsTable, this.featuresTable);
+		
+		sql = String.format("SELECT inputIndex, [weight] FROM knn_modelFeatures WHERE modelID = %d", modelID);
+		Vector<Map<String,String>> rows = db.getQueryRows(sql);
+		
+		this.featureWeights = new HashMap<Integer, Double>(rows.size());
+		for(Map<String,String> feature : rows) {
+			int inputIndex = Integer.parseInt(feature.get("inputIndex"));
+			this.featureWeights.put(this.getFeatureIDAtInputIndex(inputIndex), Double.parseDouble(feature.get("weight")));
+		}
 	}
 	
 	protected String getNeighborTableName(int modelID) {

@@ -1,8 +1,14 @@
 package algo.knn;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
+
 import sqlWrappers.SQLDatabase;
 import algo.Algorithm;
 import algo.AlgorithmDAO;
+import algo.linreg.ForwardStepwiseRegression;
+import algo.linreg.RegressionModel;
 
 public class KNNAlgorithm extends Algorithm<KNNModel> {
 	
@@ -29,9 +35,17 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 	public KNNModel buildModel(AlgorithmDAO dao) {
 		SQLDatabase db = dao.getDb();
 		
-		//TODO: intelligently select subset of features and determine weights
+		log.logStepSequenceStarted(4);
 		
-		log.logStepSequenceStarted(3);
+		// 0. stepwise regression to get features and weights
+		ForwardStepwiseRegression r = new ForwardStepwiseRegression(0.05);
+		r.setLog(log);
+		RegressionModel m = r.buildModel(dao);
+		
+		int[] featureIDs = m.getInputFeatures();
+		double[] coefficients = m.getCoefficients(); //TODO: use t-stat or avg impact
+		
+		log.logStepCompleted();
 		
 		// 1. create neighbors table
 		//neighborID, featureID, value
@@ -40,7 +54,14 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		db.dropTableIfExists(neighborTableName);
 		String sql = String.format("CREATE TABLE [%s] (neighborID int not null, featureID int not null, value float, CONSTRAINT PK__%s PRIMARY KEY (neighborID, featureID))", neighborTableName, neighborTableName);
 		db.executeQuery(sql);
-		sql = String.format("INSERT INTO [%s] (neighborID, featureID, value) %s", neighborTableName, dao.getSourceDataDepivotQuery(false));
+		
+		StringBuilder featureIDList = new StringBuilder();
+		for (int i = 0; i < featureIDs.length; i++) {
+			if(i > 0) featureIDList.append(",");
+			featureIDList.append(featureIDs[i]);
+		}
+		
+		sql = String.format("INSERT INTO [%s] (neighborID, featureID, value) SELECT observationID, featureID, value FROM (%s) x WHERE x.featureID IN (%s)", neighborTableName, dao.getSourceDataDepivotQuery(false), featureIDList.toString());
 		db.executeQuery(sql);
 		
 		log.logStepCompleted();
@@ -67,10 +88,23 @@ public class KNNAlgorithm extends Algorithm<KNNModel> {
 		sql = String.format("INSERT INTO [%s] (featureID, mu, sigma) SELECT featureID, AVG(value), STDEV(value) FROM [%s] GROUP BY featureID", featuresTableName, neighborTableName);
 		db.executeQuery(sql);
 		
+		sql = String.format("SELECT featureID, sigma FROM [%s]", featuresTableName);
+		Vector<Map<String,String>> rows = db.getQueryRows(sql);
+		
+		HashMap<Integer,Double> featureSigmas = new HashMap<Integer, Double>(featureIDs.length);
+		for(Map<String,String> row : rows) {
+			featureSigmas.put(Integer.parseInt(row.get("featureID")), Double.parseDouble(row.get("sigma")));
+		}
+		
+		HashMap<Integer,Double> featureWeights = new HashMap<Integer, Double>(featureIDs.length);
+		for(int i = 0; i < featureIDs.length; i++) {
+			featureWeights.put(featureIDs[i], Math.abs(coefficients[i]) * 0.675 * featureSigmas.get(featureIDs[i]));
+		}
+		
 		log.logStepCompleted();
 		log.logStepSequenceCompleted();
 		
-		return new KNNModel(dao.getIvFeatureIDs(), db, this.k, neighborTableName, dvTableName, featuresTableName);
+		return new KNNModel(featureIDs, db, this.k, featureWeights, neighborTableName, dvTableName, featuresTableName);
 	}
 	
 	protected String getNeighborTableName() {

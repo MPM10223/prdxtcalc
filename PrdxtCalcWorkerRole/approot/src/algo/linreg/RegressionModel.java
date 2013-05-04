@@ -24,6 +24,14 @@ public class RegressionModel extends PredictiveModel {
 		this.ivRanges = ivRanges;
 	}
 
+	public double[] getCoefficients() {
+		return coefficients;
+	}
+
+	public void setCoefficients(double[] coefficients) {
+		this.coefficients = coefficients;
+	}
+
 	@Override
 	public int getModelTypeID() {
 		return 2; //TODO: make this cleaner, e.g. use an enum
