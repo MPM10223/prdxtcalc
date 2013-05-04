@@ -23,6 +23,8 @@ public class JobLog implements ILog {
 	protected Stack<StepSequenceProgress> steps;
 	protected double progress;
 	
+	protected final int MAX_STACKTRACE_SIZE = 3000;
+	
 	public JobLog(SQLDatabase db, String logTable, int serverID, int jobID) {
 		this.db = db;
 		this.logTable = logTable;
@@ -77,7 +79,7 @@ public class JobLog implements ILog {
 			// continue on with stackTrace as is
 		}
 		
-		String sql = String.format("INSERT INTO jobErrors (jobID, errorMessage, stackTrace) SELECT %d, '%s', '%s'", jobID, e.getMessage(), stackTrace.toString());
+		String sql = String.format("INSERT INTO jobErrors (jobID, errorMessage, stackTrace) SELECT %d, '%s', '%s'", jobID, e.getMessage(), stackTrace.substring(0, MAX_STACKTRACE_SIZE));
 		db.refreshConnection();
 		db.executeQuery(sql);
 		
