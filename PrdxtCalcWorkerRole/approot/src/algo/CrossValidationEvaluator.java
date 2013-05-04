@@ -50,7 +50,7 @@ public class CrossValidationEvaluator implements IFitnessFunction<Algorithm<Pred
 		// 2. for each fold
 		for(int i = 0; i < this.numFolds; i++) {
 		
-			log.logMessage(String.format("Building model on all but fold %d...", i));
+			log.logMessage(String.format("Building model on all but fold %d...", i + 1));
 			
 			// run the algorithm on all data but this fold
 			PredictiveModel m = subject.buildModel(new AlgorithmDAO(dao.getDb(), dao.getFoldTable(), dao.getIvColumns(), dao.getIvFeatureIDs(), dao.getDvColumn(), dao.getIdColumn(), String.format("foldID <> %d", i)));
